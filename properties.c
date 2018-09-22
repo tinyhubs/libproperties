@@ -1,16 +1,15 @@
+#include "properties.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 
 struct properties_t
 {
-
+    int a;
 };
 
-
-struct p_cache_t
-{
-    int     len;
-    char    cache[1024];
-};
 
 enum
 {
@@ -25,16 +24,92 @@ enum
 
 unsigned char cmap[256] = 
 {
-
+    0,
 };
 
+typedef int (*P_READ)(void* context, char* buf, int size);
 
 struct p_cache_t
 {
     int     lino;
-    char*   line;   //  行的起始位置
-    char*   end;    //  cache 的结尾
+    char*   line;       //  行的起始位置
+    char*   pos;        //  当前已经识别到的位置
+    char*   end;        //  cache 的结尾
+
+
+    char*   cache;      //  缓冲器的起始位置
+    char*   tail;       //  缓冲器的结束位置
+    
+    void*   context;
+    P_READ  read;
 };
+
+
+//  文件已经结束或者文件读取已经出错了
+int p_read_from_file(void* context, char* buf, int size)
+{
+    FILE* file = (FILE*)context;
+    if (feof(file))
+    {
+        return  0;
+    }
+
+    if (ferror(file))
+    {
+        return -1;
+    }
+
+    //  开始读取
+    size_t read_size   = fread(buf, 1, size, file);
+    if (read_size > 0)
+    {
+        return read_size;
+    }
+
+    return read_size;
+}
+
+int p_read_from_string(void* context, char* buf, int size)
+{
+    return  0;
+}
+
+
+inline static char* p_cache_read_more(struct p_cache_t* cache, char* pos)
+{
+    //  设置终止位置
+    cache->pos = pos;
+
+    //  如果缓冲区里面还有数据存在，那么需要搬移数据，以便腾出更多的空间
+    int offset    = cache->pos - cache->cache;  //  需要移动多远
+    if (offset > 0)
+    {
+        int move_size = cache->end - cache->pos;    //  需要移动多少数据
+        if (move_size > 0)
+        {
+            memmove(cache->cache, pos, move_size);
+        }
+        cache->line -= offset;
+        cache->pos  -= offset;
+        cache->end  -= offset;
+    }
+    
+    //  读取新数据填充缓冲区
+    int remain_size = cache->tail - cache->end;
+    int ret = cache->read(cache->context, cache->end, remain_size);
+
+    //  文件已经结束或者文件读取已经出错了
+    if (ret <= 0)
+    {
+        return cache->pos;
+    }
+
+    cache->end += ret;
+    return cache->pos;
+}
+
+
+
 
 inline static void p_skip_space(struct p_cache_t* cache)
 {
@@ -84,13 +159,13 @@ retry:
     }
 
     //  如果遇到换行,那么注释就结束了
-    if (P_NEWLINE&cmp[*pos])
+    if (P_NEWLINE&cm[*pos])
     {
         cache->pos = pos;
         return;
     }
 
-    if (P_EOS&cmp[*pos])
+    if (P_EOS&cm[*pos])
     {
         //  载入更多数据
         pos = p_cache_read_more(cache, pos);
@@ -121,7 +196,7 @@ retry:
         continue;
     }
 
-    switch (cmp[*pos])
+    switch (cm[*pos])
     {
     case P_SPACE:
     case P_SPLITER:
@@ -170,7 +245,7 @@ inline static void p_accept_unicode_escape(struct p_cache_t* cache)
     //  如果提前结束
     if ((cache->pos + 4) > cache->end)
     {
-        p_cache_read_more(cache, cache->pos, 4);    //  确保至少有4个字符
+        p_cache_read_more(cache, cache->pos);    //  确保至少有4个字符
         if ((cache->pos + 4) > cache->end)
         {
             //  要报错吗？？？
@@ -241,7 +316,7 @@ retry:
         continue;
     }
 
-    switch (cmp[*pos])
+    switch (cm[*pos])
     {
     case P_NEWLINE:
         //  生成key，并向props添加key
@@ -319,7 +394,7 @@ retry:
     }
 }
 
-int properties_parse(struct p_cache_t* cache)
+int properties_parse(struct p_cache_t* cache, void* context)
 {
     register char* pos = cache->pos;
 
