@@ -709,7 +709,7 @@ static inline char* p_accept_spliter(struct cache_t* cache)
 
         if ((P_SPACE|P_SPLITER)&cm[*pos])
         {
-            pos++;
+            cache->pos = pos + 1;
             return p_skip_space(cache);
         }
 

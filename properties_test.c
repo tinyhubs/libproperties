@@ -16,10 +16,10 @@ int _tmain(int argc, _TCHAR* argv[])
 {
     char* str[] = 
     {
-//         "a=1\nb=2",
-//         "a=1\n#dsdsd",
+        "a=1\nb=2",
+        "a=1\n#dsdsd",
         "a\\=1    1111111111    ",
-//         "a=1    1111111111    ",
+        "a=1    1111111111    ",
     };
 
     for (int i = 0; i < (sizeof(str) / sizeof(str[0])); i++)
