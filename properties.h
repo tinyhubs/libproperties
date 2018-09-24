@@ -4,14 +4,6 @@
 
 
 
-#define SOURCE_FORMAT_PROPERTIES    "properties"
-#define SOURCE_FORMAT_YAML          "yaml"
-#define SOURCE_FORMAT_XML           "xml"
-#define SOURCE_FORMAT_INI           "ini"
-
-
-
-
 #ifndef EXTERN
 #ifdef __cplusplus
 #define EXTERN  extern "C"
@@ -22,12 +14,13 @@
 
 
 
+
 typedef int     (*PARSE_READ)(struct parse_source_t* source, char* buf, int size);
 typedef void    (*PARSE_FREE)(struct parse_source_t* source);
 struct parse_source_t
 {
-    PARSE_READ  read;       //  加载数据
-    PARSE_FREE  free;       //  释放输入源
+    PARSE_READ  read;
+    PARSE_FREE  free;
 };
 
 
