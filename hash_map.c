@@ -1,19 +1,27 @@
 #include "hash_map.h"
 
 
-#include "stdlib.h"
-#include "string.h"
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 
-struct hash_trait* hash_trait_init_string  (struct hash_trait* trait)
-{
+#ifndef ASSERT
+#define ASSERT(e)   assert(e)
+#endif//ASSERT
 
-}
 
-struct hash_trait* hash_trait_init_int     (struct hash_trait* trait)
-{
-
-}
+// 
+// 
+// struct hash_trait* hash_trait_init_string  (struct hash_trait* trait)
+// {
+// 
+// }
+// 
+// struct hash_trait* hash_trait_init_int     (struct hash_trait* trait)
+// {
+// 
+// }
 
 struct hash_map*    hash_map_init(struct hash_map* h, struct hash_trait* trait, int buckets_size)
 {

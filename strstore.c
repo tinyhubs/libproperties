@@ -1,20 +1,22 @@
 #include "strstore.h"
 
 
-struct block_t
+struct strblock_t
 {
 
 };
 
 struct strstore_t
 {
-
+    int                 blocks_cap;
+    int                 blocks_len;
+    struct strblock_t*  blocks[];
 };
 
 
 struct strstore_t*  strstore_new(int32_t init_cap)
 {
-    
+    strstore_t
 }
 
 void                strstore_del(struct strstore_t* s)

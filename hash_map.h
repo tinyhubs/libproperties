@@ -42,7 +42,7 @@ struct hash_map
 int     hash_trait_init_string  (struct hash_trait* trait);
 int     hash_trait_init_int     (struct hash_trait* trait);
 
-int                 hash_map_init   (struct hash_map* h, struct hash_trait* trait, int buckets_size); 
+struct hash_map*    hash_map_init   (struct hash_map* h, struct hash_trait* trait, int buckets_size); 
 void                hash_map_exit   (struct hash_map* h); 
 struct hash_node*   hash_map_put    (struct hash_map* h, struct hash_node* n);
 struct hash_node*   hash_map_get    (struct hash_map* h, struct hash_key key);

@@ -21,9 +21,15 @@
     <ClCompile Include="properties.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="buf.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="properties.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="buf.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
