@@ -8,7 +8,10 @@ typedef int             int32_t;
 
 struct str_t
 {
-    void*       owner;
+    void*       next;
+    void*       prev;
+    int32_t     owner;
+    uint32_t    option;
     uint32_t    hash;
     int32_t     len;
     char        text[0];

@@ -8,6 +8,8 @@
 #define SOURCE_FORMAT_INI           "ini"
 
 
+#define CACHE_SIZE_DEF  (4*1024)
+
 //  Fountion:   P_READ
 //      从 source 读取数据
 //  Parameters:

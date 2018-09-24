@@ -39,12 +39,14 @@ unsigned char cm[256] =
 struct cache_t
 {
     struct source_t*    source;
+    int                 outsize;    //  cache是否来自外部
+    char*               cache;      //  缓冲器的起始位置
+    char*               tail;       //  缓冲器的结束位置
+
     int                 lino;       //  行号
     char*               line;       //  行的起始位置
     char*               pos;        //  当前已经识别到的位置
     char*               end;        //  cache 的结尾
-    char*               cache;      //  缓冲器的起始位置
-    char*               tail;       //  缓冲器的结束位置
 };
 
 
@@ -475,10 +477,75 @@ retry:
 
 int properties_load         (struct properties_t* p, struct source_t* source, char* format)
 {
+    ASSERT(NULL != p);
+    ASSERT(NULL != source);
+    ASSERT(NULL != format);
 
+    struct cache_t cache;
+    cache.source    =   source;
+    if (NULL != source->cache)
+    {
+        cache.cache     =   source->cache;
+        cache.tail      =   source->cache + source->size;
+        cache.outsize   =   1;
+    }
+    else
+    {
+        cache.cache     =   (char*)malloc(CACHE_SIZE_DEF);
+        cache.outsize   =   0;
+    }
+    cache.lino      =   0;
+    cache.line      =   cache.cache;
+    cache.pos       =   cache.cache;
+    cache.end       =   cache.cache;
+
+    switch (format[0])
+    {
+    case 'p':
+        if (0 == strcmp(format, SOURCE_FORMAT_PROPERTIES))
+        {
+            return p_parse_format_properties(p, &cache);
+        }
+        return -1;
+    case 'y':
+        if (0 == strcmp(format, SOURCE_FORMAT_YAML))
+        {
+            return p_parse_format_yaml(p, &cache);
+        }
+        return -1;
+    case 'x':
+        if (0 == strcmp(format, SOURCE_FORMAT_XML))
+        {
+            return p_parse_format_xml(p, &cache);
+        }
+        return -1;
+    case 'i':
+        if (0 == strcmp(format, SOURCE_FORMAT_INI))
+        {
+            return p_parse_format_ini(p, &cache);
+        }
+        return -1;
+    default:
+        return -1;
+    }
+}
+int p_parse_format_yaml(struct properties_t* p, struct cache_t* cache)
+{
+    return  -1;
 }
 
-int p_parse_format_properties(struct cache_t* cache)
+int p_parse_format_xml(struct properties_t* p, struct cache_t* cache)
+{
+    return  -1;
+}
+
+int p_parse_format_ini(struct properties_t* p, struct cache_t* cache)
+{
+    return  -1;
+}
+
+
+int p_parse_format_properties(struct properties_t* p, struct cache_t* cache)
 {
     register char* pos = cache->pos;
 

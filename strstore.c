@@ -1,6 +1,11 @@
 #include "strstore.h"
 
 
+struct block_t
+{
+
+};
+
 struct strstore_t
 {
 
