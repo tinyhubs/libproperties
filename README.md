@@ -16,34 +16,39 @@ You need just two file below to your project:
 
 #	Usage
 
-This library provide the only one function to parse the  `.properties` file:
+#### First: Create a 'struct parse_source_t' object
+
+`struct parse_source_t` is used to define the input text.
+Ofcouse you can define it your self, 
+But, there are two way to create `struct parse_source_t` by default.
+
+- To create from the file, use `parse_source_new_from_file`
+- To create from the string, use `parse_source_new_from_string`
+
+
+#### Second: Call the function `properties_load` to parse the input text
 
 ```C
 EXTERN  int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY handle, void* context);
 ```
 
-`properties_load` need two parameters:
+`properties_load` need tree parameters:
 
 - `source` is a object that provide the input text. It is a pointer to  `struct parse_source_t`.
 - `handle` is a callback function, which will be called when `properties_load` recogenized any one of the key-value pair.
 - `context` is a pointer which will be the first parameter of the `handle`. 
 
-The  struct `parse_source_t` is defined below:
+The `properties_load` function will do not help you to store any of the key-value pairs. 
+So, you need put your code in the function `handle`. 
 
-```C
-typedef int     (*PARSE_READ)(struct parse_source_t* source, char* buf, int size);
-typedef void    (*PARSE_FREE)(struct parse_source_t* source);
-struct parse_source_t
-{
-    PARSE_READ  read;
-    PARSE_FREE  free;
-};
-```
+#### Third: Destroy the source object.
 
-`parse_source_t` give the `properties_load` a way to scan the text from any input datasource.
+Just call the function `parse_source_del`.
+
+
+#	How to
 
 #	Format
-
 
 
 #	Custom the input source
