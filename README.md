@@ -1,6 +1,7 @@
 #	libproperties
 
-libproperties is a library to parse the Java .properties files. It was writen in pure C.
+libproperties is a library to parse the Java .properties files. It was writen in pure C. 
+And fullly compatible with the Java .properties file format.
 
 #	Build
 
@@ -16,7 +17,7 @@ You need just two file below to your project:
 
 #	Usage
 
-#### First: Create a 'struct parse_source_t' object
+### First: Create a 'struct parse_source_t' object
 
 `struct parse_source_t` is used to define the input text.
 Ofcouse you can define it your self, 
@@ -26,7 +27,7 @@ But, there are two way to create `struct parse_source_t` by default.
 - To create from the string, use `parse_source_new_from_string`
 
 
-#### Second: Call the function `properties_load` to parse the input text
+### Second: Call the function `properties_load` to parse the input text
 
 ```C
 EXTERN  int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY handle, void* context);
@@ -41,20 +42,27 @@ EXTERN  int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY h
 The `properties_load` function will do not help you to store any of the key-value pairs. 
 So, you need put your code in the function `handle`. 
 
-#### Third: Destroy the source object.
+### Third: Destroy the source object.
 
 Just call the function `parse_source_del`.
 
 
-#	How to
-
 #	Format
+
+This library is complete compatible with the Java .properties file format which defined in 
+[Properties.java(JDK9)](https://docs.oracle.com/javase/9/docs/api/java/util/Properties.html).
+Please jump to the `load` function to checkout the full of the definition of the format.
+This document is completely and exactly but too much complex. 
+And there is a simple one which provide by `Wikipedia` [here](https://en.wikipedia.org/wiki/.properties).
+
+#	Encode
+
 
 
 #	Custom the input source
 
 
-#	Encode
+
 
 
 #	BOM
