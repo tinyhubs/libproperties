@@ -347,7 +347,10 @@ EXTERN  void    parse_source_del(struct parse_source_t* source)
         return;
     }
 
-    source->free(source);
+    if (NULL != source->free)
+    {
+        source->free(source);
+    }
 }
 
 
