@@ -17,6 +17,8 @@ You need just two file below to your project:
 
 #	Usage
 
+See the header file of `properties.h` to see how to call the function.
+
 ### First: Create a 'struct parse_source_t' object
 
 `struct parse_source_t` is used to define the input text.
@@ -57,15 +59,81 @@ And there is a simple one which provide by `Wikipedia` [here](https://en.wikiped
 
 #	Encode
 
+UTF-8 or ASCII 
 
 
 #	Custom the input source
 
+Generally speaking, the `parse_source_new_from_file` and `parse_source_new_from_string` is enough.
+But some times we have to custom ourself input source. 
+Such as, the input source gived is not a file name, but file handle. 
+This time, we can create a new type of input source:
 
+#### 1. Declare your new `parse_source_t`:
 
+```c
+struct my_file_source_t
+{
+	struct parse_source_t	source;
+	FILE*					file;
+};
+```
 
+#### 2. Implement the `PARSE_READ` and `PARSE_FREE` function:
+
+```c
+int     file_source_read(struct parse_source_t* source, char* buf, int size)
+{
+	struct my_file_source_t* my_source = (struct my_file_source_t*)source;
+	FILE* file = my_source->file;
+	if (feof(file))
+	{
+		return 0;
+	}
+
+	if (ferror(file))
+	{
+		return -1;
+	}
+
+	size_t read_size = fread(buf, size, file);
+	if (read_size > 0)
+	{
+		return read_size;
+	}
+
+	return read_size;
+}
+
+void    file_source_free(struct parse_source_t* source)
+{
+	struct my_file_source_t* my_source = (struct my_file_source_t*)source;
+	fclose(my_source->file);
+}
+
+```
+
+#### 3. Define a function to initialize your input source:
+
+```C
+struct my_file_source_t* my_file_source_init(struct my_file_source_t* my_source, FILE* file)
+{
+	my_source->source.read = file_source_read;
+	my_source->source.free = file_source_free;
+	my_source->file        = file;
+	return my_source;
+}
+```
+
+#### 4. Enjoy your new input source:
+
+```c
+struct my_file_source_t my_source;
+properties_load(my_file_source_init(&my_source, file), handle, NULL);
+```
 
 #	BOM
 
-
- 
+If the input file have BOM at the begining of the file.
+You'd better custom a new input source for it.
+And skip the BOM bytes when the read function called at the first time.

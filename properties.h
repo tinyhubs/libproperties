@@ -13,7 +13,7 @@
 #endif//EXTERN
 
 
-
+ 
 
 typedef int     (*PARSE_READ)(struct parse_source_t* source, char* buf, int size);
 typedef void    (*PARSE_FREE)(struct parse_source_t* source);
