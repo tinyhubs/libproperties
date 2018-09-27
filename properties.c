@@ -227,7 +227,7 @@ static void p_source_file_free(struct parse_source_t* psource)
 
 
 //  文件已经结束或者文件读取已经出错了
-static int p_source_file_read(struct parse_source_t* psource, char* buf, int size)
+static int p_source_file_read(struct parse_source_t* psource, char* buf, int* size)
 {
     ASSERT(NULL != psource);
 
@@ -235,22 +235,20 @@ static int p_source_file_read(struct parse_source_t* psource, char* buf, int siz
     FILE* file = source->file;
     if (feof(file))
     {
-        return  0;
+        size = 0;
+        return  1;
     }
 
     if (ferror(file))
     {
+        size = 0;
         return -1;
     }
 
     //  开始读取
-    size_t read_size   = fread(buf, 1, size, file);
-    if (read_size > 0)
-    {
-        return read_size;
-    }
-
-    return read_size;
+    size_t read_size   = fread(buf, 1, *size, file);
+    *size = read_size;
+    return 0;
 }
 
 
@@ -291,27 +289,35 @@ static void     p_source_string_free(struct parse_source_t* source)
     return;
 }
 
-static int      p_source_string_read(struct parse_source_t* psource, char* buf, int size)
+static int      p_source_string_read(struct parse_source_t* psource, char* buf, int* size)
 {
     ASSERT(NULL != psource);
 
     struct parse_source_string_t* source = (struct parse_source_string_t*)psource;
 
-    int copy_len = (source->end - source->pos);
-    if (copy_len > size)
+    if (source->end == source->pos)
     {
-        copy_len = size;
+        *size = 0;
+        return 1;
+    }
+
+    int copy_len = (source->end - source->pos);
+    if (copy_len > *size)
+    {
+        copy_len = *size;
     }
 
     if (0 == copy_len)
     {
+        *size = copy_len;
         return 0;
     }
 
     memcpy(buf, source->pos, copy_len);
     source->pos += copy_len;
 
-    return copy_len;
+    *size = copy_len;
+    return 0;
 }
 
 EXTERN  struct parse_source_t*    parse_source_new_from_string   (char* str, char* end)
@@ -376,15 +382,15 @@ static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
 
     //  读取新数据填充缓冲区
     int remain_size = cache->tail - cache->limit;
-    int ret = cache->source->read(cache->source, cache->limit, remain_size);
+    int ret = cache->source->read(cache->source, cache->limit, &remain_size);
 
     //  文件已经结束或者文件读取已经出错了
-    if (ret <= 0)
+    if (ret != 0)
     {
         return cache->pos;
     }
 
-    cache->limit += ret;
+    cache->limit += remain_size;
     cache->limit[0] = '\0';
     return cache->pos;
 }

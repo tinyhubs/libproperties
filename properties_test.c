@@ -20,6 +20,7 @@ int _tmain(int argc, _TCHAR* argv[])
         "a=1\n#dsdsd",
         "a\\=1    1111111111    ",
         "a=1    1111111111    ",
+        "a=1 \\\n   1111111111    ",
     };
 
     for (int i = 0; i < (sizeof(str) / sizeof(str[0])); i++)

@@ -17,12 +17,13 @@
 //
 //  \param  source  The input source object.
 //  \param  buf     Store the read data.
-//  \param  size    The max size of the `buf`.
+//  \param  size    The max size of the `buf` as input parameter, and the real 
+//                  byte have fill into buf as the output parameter.
 //
-//  \return 0   The input source is no data to provid.
+//  \return 0   The input source is no data to provide.
 //          <0  Hit the error, the parse process will be terminated.
-//          >0  How many bytes have read.
-typedef int     (*PARSE_READ)(struct parse_source_t* source, char* buf, int size);
+//          1   End of the input source.
+typedef int     (*PARSE_READ)(struct parse_source_t* source, char* buf, int* size);
 
 //! This function is used to close the `parse_source_t` object.
 //
@@ -75,6 +76,16 @@ EXTERN  void                    parse_source_del                (struct parse_so
 //  \return 0       The parser will be continue unness hit the end of the input source.
 //          others  The parse process will be terminated imediately.
 typedef int     (*HANDLE_PROPERTY)(void* context, char* key, int key_len, char* val, int val_len);
+
+
+
+//! Load and parse the input text from source, once recogenize a key-value pair, call `handle`.
+//
+//  \param  source  Where to read the input text from.
+//  \param  handle  The callback function, to notify the user that the parser find a new key-value pair.
+//  \param  context This parameter will be the first parameter of handle.
+//  
+//  \return If there is no error, return 0, otherwise return -1.
 EXTERN  int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY handle, void* context);
 
 
