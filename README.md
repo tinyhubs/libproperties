@@ -57,6 +57,7 @@ Please jump to the `load` function to checkout the full of the definition of the
 This document is completely and exactly but too much complex. 
 And there is a simple one which provide by `Wikipedia` [here](https://en.wikipedia.org/wiki/.properties).
 
+
 #	Encode
 
 UTF-8 or ASCII 

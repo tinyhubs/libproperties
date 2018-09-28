@@ -12,7 +12,18 @@ int     handle(void* context, char* key, int key_len, char* val, int val_len)
     return 0;
 }
 
+
 int _tmain(int argc, _TCHAR* argv[])
+{
+    struct parse_source_t* source = parse_source_new_from_file("F:\\dev\\github.com\\libbylg\\libproperties\\test\\1.properties");
+    properties_load(source, handle, NULL);
+    parse_source_del(source);
+    
+    getchar();
+    return 0;
+}
+
+int _tmain1(int argc, _TCHAR* argv[])
 {
     char* str[] = 
     {

@@ -692,43 +692,38 @@ static inline char* p_accept_spliter(struct cache_t* cache)
 {
     register char* pos = cache->pos;
 
-    while (1)
-    {
-        while (0 == ((P_SPACE|P_SPLITER|P_EOS|P_NEWLINE)&cm[*pos]))
-        {
-            pos++;
-        }
+retry:
+    pos = p_skip_space(cache, pos + 1);
 
-        if (P_EOS&cm[*pos])
+    if (P_EOS&cm[*pos])
+    {
+        //  如果实际是缓冲区结束标志
+        if (pos == cache->limit)
         {
-            //  如果实际是缓冲区结束标志
+            pos = p_cache_read_more(cache, pos);
             if (pos == cache->limit)
             {
-                pos = p_cache_read_more(cache, pos);
-                if (pos == cache->limit)
-                {
-                    return pos;
-                }
-
-                continue;
+                return pos;
             }
 
-            //  真遇到 \0 实际已经无法继续下去了
-            return cache->pos = pos;
+            goto retry;
         }
 
-        if ((P_SPACE|P_SPLITER)&cm[*pos])
-        {
-            return p_skip_space(cache, pos + 1);
-        }
-
-        if (P_NEWLINE&cm[*pos])
-        {
-            return cache->pos = pos;
-        }
-
-        ASSERT(0);    //  不应该走到这里来
+        //  真遇到 \0 实际已经无法继续下去了
+        return cache->pos = pos;
     }
+
+    if (P_SPLITER&cm[*pos])
+    {
+        return p_skip_space(cache, pos + 1);
+    }
+
+    if (P_NEWLINE&cm[*pos])
+    {
+        return cache->pos = pos;
+    }
+
+    return cache->pos = pos;
 }
 
 
