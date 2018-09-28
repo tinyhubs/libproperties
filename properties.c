@@ -398,9 +398,9 @@ static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
 
 
 
-static inline char* p_skip_space(struct cache_t* cache)
+static inline char* p_skip_space(struct cache_t* cache, char* pos)
 {
-    register char* pos = cache->pos;
+    cache->pos = pos;
 
 retry:
     //  跳过所有的空白
@@ -577,6 +577,8 @@ retry:
         return cache->pos = pos + 1;
     case 'u':   //  unicode转义
         return p_accept_unicode_escape(cache, pos, buf);
+    case '\n':
+        return p_skip_space(cache, pos + 1);
     default:    // *pos
         buf_append_char(buf, *pos);
         return cache->pos = pos + 1;
@@ -717,8 +719,7 @@ static inline char* p_accept_spliter(struct cache_t* cache)
 
         if ((P_SPACE|P_SPLITER)&cm[*pos])
         {
-            cache->pos = pos + 1;
-            return p_skip_space(cache);
+            return p_skip_space(cache, pos + 1);
         }
 
         if (P_NEWLINE&cm[*pos])
@@ -792,7 +793,7 @@ static inline int   properties_load_impl(struct cache_t* cache, HANDLE_PROPERTY 
     {
         if (P_SPACE&cm[*pos])
         {
-            pos = p_skip_space(cache);
+            pos = p_skip_space(cache, pos);
         }
 
         //  如果是注释行，跳过
@@ -805,10 +806,11 @@ static inline int   properties_load_impl(struct cache_t* cache, HANDLE_PROPERTY 
         //  如果是空行，修改行号和行起始
         if (P_NEWLINE&cm[*pos])
         {
-            cache->pos++;
+            pos++;
+            cache->pos = pos;
             cache->line = cache->pos;
             cache->lino++;
-            pos = p_skip_space(cache);
+            pos = p_skip_space(cache, pos);
             continue;
         }
 
