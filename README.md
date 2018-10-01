@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
 
 ###	Test
 
-#####  Requrement
+#####  0. Requrement
 
 *Windows*
 
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 
    * [premake](https://premake.github.io/)
 
-#####  Generage the makefile(Linux/Unix) or project file
+#####  1. Generage the makefile(Linux/Unix) or project file
 
 *Windows*
 
@@ -130,7 +130,7 @@ The `vs2010` should be replace with one of below, which is depended the version 
 premake5 --file=libproperties_test.premake gmake
 ```
 
-#####  Build the test tool
+#####  2. Build the test tool
 
 *Windows*
 
@@ -142,7 +142,7 @@ Open the `libproperties_test.sln` with your IDE, and then press F7
 make clean && make
 ```
 
-##### Run test cases
+##### 3. Run test cases
 
 If your system is Windows, you need open the bash of MSYS2 first.
 
