@@ -1,16 +1,18 @@
 #!/usr/bin/bash
 
 
+
 SELFDIR=$(cd $(dirname $0);pwd)
+TESTDIR="${SELFDIR}/test"
 
 
 
 function    compile_java_tools()
 {
-    rm -rf  ${SELFDIR}/*.class
-    cd      "${SELFDIR}" && javac "${SELFDIR}/Main.java"
+    rm -rf  ${TESTDIR}/*.class
+    cd      "${TESTDIR}" && javac "${TESTDIR}/Main.java"
     RESULT=$?
-    if [ ${RESULT} -ne 0 ] || [ ! -f ${SELFDIR}/Main.class ]; then
+    if [ ${RESULT} -ne 0 ] || [ ! -f ${TESTDIR}/Main.class ]; then
         echo    "Compile the java test tool failed"
         return  1
     fi 
@@ -22,13 +24,23 @@ function    compile_java_tools()
 
 function    compile_c_tools()
 {
-    #rm -rf  ${SELFDIR}/*.class
-    #cd      "${SELFDIR}" && javac "${SELFDIR}"
+    #premake5 --file=libproperties_test.premake clean
+    #if [ "x${OS}" == "xWindows_NT" ]; then
+    #    premake5 --file=libproperties_test.premake vs2010
+    #else
+    #    premake5 --file=libproperties_test.premake gmake
+    #fi
     #RESULT=$?
-    #if [ ${RESULT} -ne 0 ] || [ ! -f ${SELFDIR}/*.class ]; then
-    #    echo    "Compile the java test tool failed"
+    #if [ ${RESULT} -ne 0 ]; then
+    #    echo    "Generate project file failed"
     #    return  1
-    #fi 
+    #fi
+
+
+    #if [ "x${OS}" == "xWindows_NT" ]; then
+        
+    #else
+    #fi
 
     return  0
 }
@@ -38,10 +50,10 @@ function    compile_c_tools()
 
 function    generate_expect_files()
 {
-    local files=$(cd ${SELFDIR};ls | grep -E '[0-9]+\.properties$')
+    local files=$(cd ${TESTDIR};ls | grep -E '[0-9]+\.properties$')
     for file in ${files}; do
-        rm -rf  "${SELFDIR}/${file}.j.expect"
-        cd      "${SELFDIR}" && java -cp "./" Main "${SELFDIR}/${file}" > "${SELFDIR}/${file}.j.expect"
+        rm -rf  "${TESTDIR}/${file}.j.expect"
+        cd      "${TESTDIR}" && java -cp "./" Main "${TESTDIR}/${file}" > "${TESTDIR}/${file}.j.expect"
         RESULT=$?
         if [ ${RESULT} -ne 0 ] || [ ! -f "${file}.j.expect" ]; then
             echo    "Create expect file failed: ${file}"
@@ -57,9 +69,9 @@ function    generate_expect_files()
 
 function    run_teatcases()
 {
-    local exe_tool=${SELFDIR}/libproperties_test
+    local exe_tool=${TESTDIR}/libproperties_test
     if [ "x${OS}" == "xWindows_NT" ]; then
-        exe_tool=${SELFDIR}/libproperties_test.exe
+        exe_tool=${TESTDIR}/libproperties_test.exe
     fi
 
     if [ ! -f "${exe_tool}" ]; then
@@ -69,20 +81,20 @@ function    run_teatcases()
 
 
     local fail_count=0
-    local files=$(cd "${SELFDIR}";ls | grep -E '[0-9]+\.properties$')
+    local files=$(cd "${TESTDIR}";ls | grep -E '[0-9]+\.properties$')
     for file in ${files}; do
-        rm -rf  "${SELFDIR}/${file}.c.expect"
-        cd      "${SELFDIR}" && ${exe_tool} "${SELFDIR}/${file}" > "${SELFDIR}/${file}.c.expect"
+        rm -rf  "${TESTDIR}/${file}.c.expect"
+        cd      "${TESTDIR}" && ${exe_tool} "${TESTDIR}/${file}" > "${TESTDIR}/${file}.c.expect"
         RESULT=$?
         if [ ${RESULT} -ne 0 ] || [ ! -f "${file}.c.expect" ]; then
-            echo    "Parse file failed: ${SELFDIR}/${file}"
+            echo    "Parse file failed: ${TESTDIR}/${file}"
             return  4
         fi
 
-        dos2unix    "${SELFDIR}/${file}.c.expect"   >&  /dev/null
-        dos2unix    "${SELFDIR}/${file}.j.expect"   >&  /dev/null
+        dos2unix    "${TESTDIR}/${file}.c.expect"   >&  /dev/null
+        dos2unix    "${TESTDIR}/${file}.j.expect"   >&  /dev/null
 
-        diff -a -q -y  "${SELFDIR}/${file}.c.expect"   "${SELFDIR}/${file}.j.expect"
+        diff -a -q -y  "${TESTDIR}/${file}.c.expect"   "${TESTDIR}/${file}.j.expect"
         RESULT=$?
         if [ ${RESULT} -ne 0 ]; then
             echo    "[${file}]    fail"

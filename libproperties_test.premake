@@ -1,4 +1,5 @@
---  premake5 --file=libproperties.premake vs2010
+--  premake5 --file=libproperties_test.premake vs2010
+--  premake5 --file=libproperties_test.premake gmake
 
 workspace   "libproperties_test"
     configurations  {"Debug"}

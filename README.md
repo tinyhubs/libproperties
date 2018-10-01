@@ -14,40 +14,141 @@ You need just two file below to your project:
 - buf.c
 
 
-
 #	Usage
 
-See the header file of `properties.h` to see how to call the function.
-
-### First: Create a 'struct parse_source_t' object
-
-`struct parse_source_t` is used to define the input text.
-Ofcouse you can define it your self, 
-But, there are two way to create `struct parse_source_t` by default.
-
-- To create from the file, use `parse_source_new_from_file`
-- To create from the string, use `parse_source_new_from_string`
-
-
-### Second: Call the function `properties_load` to parse the input text
+The kernel function of this library is `properties_parse`
 
 ```C
-EXTERN  int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY handle, void* context);
+EXTERN  int     properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler);
 ```
 
-`properties_load` need tree parameters:
+It need four parameters:
 
-- `source` is a object that provide the input text. It is a pointer to  `struct parse_source_t`.
-- `handle` is a callback function, which will be called when `properties_load` recogenized any one of the key-value pair.
-- `context` is a pointer which will be the first parameter of the `handle`. 
+- `source_context` and `source_read` is used to tell where to read the text from.
+- `handler_context` and `handler` is used to tell the function how to precess the key-value pairs of the property.
 
-The `properties_load` function will do not help you to store any of the key-value pairs. 
-So, you need put your code in the function `handle`. 
+This library have provided two `source_read` function by default.
 
-### Third: Destroy the source object.
+- Read input text from a file, please use `properties_source_file_read`.
+- Read input text from simple string, please use `properties_source_file_string`.
 
-Just call the function `parse_source_del`.
+### Sample 1: Read from file:
 
+```C
+int     test_handler(void* context, char* key, int key_len, char* val, int val_len)
+{
+    printf("[%s]=[%s]\n", key, val);
+    return 0;
+}
+
+
+int main(int argc, char* argv[])
+{
+    if (argc < 2)
+    {
+        printf("Missing parameters: properties_test <FILE>");
+        return  1;
+    }
+
+    FILE* file = fopen(argv[1], "r");
+    if (NULL == file)
+    {
+        return  NULL;
+    }
+
+    int ret = properties_parse(file, properties_source_file_read, NULL, test_handler);
+    fclose(file);
+    
+    getchar();
+    return ret;
+}
+```
+
+### Sample 2: Read from string:
+
+```C
+int     test_handler(void* context, char* key, int key_len, char* val, int val_len)
+{
+    printf("[%s]=[%s]\n", key, val);
+    return 0;
+}
+
+
+int main(int argc, char* argv[])
+{
+    char str[] = 
+    "a=b\n"
+    "c=123\n"
+    ;
+
+    struct properties_source_string_t source = 
+    {
+        str,
+        str + strlen(str)
+    };
+    properties_parse(&source, properties_source_string_read, NULL, test_handler);
+
+    getchar();
+	return 0;
+}
+```
+
+
+#	Test
+
+- Requrement
+
+**Windows**
+
+  * [premake](https://premake.github.io/)
+  * [MSYS2](http://www.msys2.org/)
+  * Visual Studio 2010 or later
+
+**Linux/Unix**
+
+  * [premake](https://premake.github.io/)
+
+- Generage the makefile(Linux/Unix) or project file
+
+**Windows**
+
+```sh
+premake5 --file=libproperties_test.premake vs2010
+```
+
+The `vs2010` should be replace with one of below, which is depended the version of the Visual Studio you have installed.
+  
+  * vs2008 
+  * vs2010
+  * vs2013
+  * vs2015
+  * vs2017
+
+**Linux/Unix**
+
+```sh
+premake5 --file=libproperties_test.premake gmake
+```
+
+- Build the test tool
+
+**Windows**
+
+Open the `libproperties_test.sln` with your IDE, and then press F7
+
+**Linux**
+
+```sh
+make clean && make
+```
+
+- Run test cases
+
+If your system is Windows, you need open the bash of MSYS2 first.
+
+```sh
+./test.sh
+```
 
 #	Format
 
