@@ -79,16 +79,16 @@ function    run_teatcases()
             return  4
         fi
 
-        dos2unix    "${SELFDIR}/${file}.c.expect"
-        dos2unix    "${SELFDIR}/${file}.j.expect"
+        dos2unix    "${SELFDIR}/${file}.c.expect"   >&  /dev/null
+        dos2unix    "${SELFDIR}/${file}.j.expect"   >&  /dev/null
 
         diff -a -q -y  "${SELFDIR}/${file}.c.expect"   "${SELFDIR}/${file}.j.expect"
         RESULT=$?
         if [ ${RESULT} -ne 0 ]; then
-            echo    "[${file}]\tfail"
+            echo    "[${file}]    fail"
             fail_count=`expr ${fail_count} + 1`
         else
-            echo    "[${file}]\tok"
+            echo    "[${file}]    ok"
         fi
     done
 
@@ -106,6 +106,7 @@ function    run_teatcases()
 
 function main()
 {
+    echo    "----"
     echo    "Compile java test tool ..."
     compile_java_tools
     RESULT=$?
@@ -116,6 +117,7 @@ function main()
     echo    "Compile java test tool success"
 
 
+    echo    "----"
     echo    "Compile c test tool ..."
     compile_c_tools
     RESULT=$?
@@ -126,6 +128,7 @@ function main()
     echo    "Compile c test tool success"
 
 
+    echo    "----"
     echo    "Generate expect files ..."
     generate_expect_files
     RESULT=$?
@@ -136,17 +139,21 @@ function main()
     echo    "Generate expect files success"
 
 
+    echo    "----"
     echo    "Run testcases ..."
+    echo    ""
     run_teatcases
     RESULT=$?
+    echo    ""
     if [ $RESULT -ne 0 ]; then
-        echo    "Generate expect files failed"
+        echo    "--------------------------------"
+        echo    "Run testcases failed"
         return  2
+    else
+        echo    "--------------------------------"
+        echo    "Run testcases success"
+        return  0
     fi
-    echo    "Run testcases success"
-
-
-    return  0
 }
 
 
