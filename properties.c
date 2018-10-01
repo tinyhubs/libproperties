@@ -361,7 +361,7 @@ retry:
 
 
 
-static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, struct buf_t* buf)
+static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, struct buf_t** buf)
 {
     //  uxxxx
     cache->pos = pos;
@@ -418,21 +418,21 @@ static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, st
             continue;
         default:
             //  遇到非预期的字符，提前终止
-            buf_append_wchar(buf, c);
+            *buf = buf_append_wchar(*buf, c);
             cache->pos = p;
             break;
         }
     }
 
     //  处理完毕
-    buf_append_wchar(buf, c);
+    *buf = buf_append_wchar(*buf, c);
     return cache->pos = end;
 }
 
 
 
 
-static inline char* p_accept_escape(struct cache_t* cache, char* pos, struct buf_t* buf)
+static inline char* p_accept_escape(struct cache_t* cache, char* pos, struct buf_t** buf)
 {
     cache->pos = pos;
 
@@ -455,25 +455,25 @@ retry:
         }
 
         //  斜杠后面跟着一个有效的 \0，这种情况其实不应该存在，但 Java 规范并没有说明这种情况应该怎么处理
-        buf_append_char(buf, '\0');
+        *buf = buf_append_char(*buf, '\0');
         pos++;
         goto retry;
     case 'n':   //  \n
-        buf_append_char(buf, '\n');
+        *buf = buf_append_char(*buf, '\n');
         return cache->pos = pos + 1;
         ;
     case 't':   //  \t
-        buf_append_char(buf, '\t');
+        *buf = buf_append_char(*buf, '\t');
         return cache->pos = pos + 1;
     case 'r':   //  \t
-        buf_append_char(buf, '\t');
+        *buf = buf_append_char(*buf, '\t');
         return cache->pos = pos + 1;
     case 'u':   //  unicode转义
         return p_accept_unicode_escape(cache, pos, buf);
     case '\n':
         return p_skip_space(cache, pos + 1);
     default:    // *pos
-        buf_append_char(buf, *pos);
+        *buf = buf_append_char(*buf, *pos);
         return cache->pos = pos + 1;
     }
 }
@@ -492,7 +492,7 @@ char* p_accept_key(struct cache_t* cache)
             pos++;
         }
 
-        buf_append_string(cache->key, cache->pos, pos);
+        cache->key = buf_append_string(cache->key, cache->pos, pos);
         switch (cm[*pos])
         {
         case P_SPACE:
@@ -501,7 +501,7 @@ char* p_accept_key(struct cache_t* cache)
         case P_NEWLINE:
             return cache->pos = pos;
         case P_ESCAPE:
-            pos = p_accept_escape(cache, pos, cache->key);
+            pos = p_accept_escape(cache, pos, &(cache->key));
             continue;
         case P_EOS:
             //  如果实际是缓冲区结束标志
@@ -519,7 +519,7 @@ char* p_accept_key(struct cache_t* cache)
             }
 
             //  真遇到 \0 实际已经无法继续下去了
-            buf_append_char(cache->key, '\0');
+            cache->key = buf_append_char(cache->key, '\0');
             pos++;
             continue;
         default:
@@ -535,7 +535,7 @@ char* p_accept_key(struct cache_t* cache)
 
 
 
-static inline char* p_accept_value(struct cache_t* cache, struct buf_t* buf)
+static inline char* p_accept_value(struct cache_t* cache, struct buf_t** buf)
 {
     register char* pos = cache->pos;
 
@@ -546,7 +546,7 @@ static inline char* p_accept_value(struct cache_t* cache, struct buf_t* buf)
             pos++;
         }
 
-        buf_append_string(buf, cache->pos, pos);
+        *buf = buf_append_string(*buf, cache->pos, pos);
 
         switch (cm[*pos])
         {
@@ -554,7 +554,7 @@ static inline char* p_accept_value(struct cache_t* cache, struct buf_t* buf)
             //  生成val，并向props添加key
             return cache->pos = pos;
         case P_ESCAPE:
-            pos = p_accept_escape(cache, pos, cache->val);
+            pos = p_accept_escape(cache, pos, &(cache->val));
             continue;
         case P_EOS:
             //  如果实际是缓冲区结束标志
@@ -572,7 +572,7 @@ static inline char* p_accept_value(struct cache_t* cache, struct buf_t* buf)
             }
 
             //  真遇到 \0 实际已经无法继续下去了
-            buf_append_char(buf, '\0');
+            *buf = buf_append_char(*buf, '\0');
             pos++;
             continue;
         default:
@@ -691,7 +691,7 @@ static inline int   properties_load_impl(struct cache_t* cache, void* handler_co
         }
 
         //  收取 val
-        pos = p_accept_value(cache, cache->val);
+        pos = p_accept_value(cache, &(cache->val));
 
         cache->key = buf_append_char(cache->key, '\0');
         cache->val = buf_append_char(cache->val, '\0');
