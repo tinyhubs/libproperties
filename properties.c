@@ -184,25 +184,6 @@ static unsigned char cm[256] =
 };
 
 
-// 
-// 
-// static void p_source_file_free(struct parse_source_t* psource)
-// {
-//     if (NULL == psource)
-//     {
-//         return;
-//     }
-// 
-//     struct properties_source_file_t* source = (struct properties_source_file_t*)psource;
-//     if (NULL != source->file)
-//     {
-//         fclose((FILE*)(source->file));
-//     }
-// 
-//     free(source);
-// }
-// 
-
 
 
 //  文件已经结束或者文件读取已经出错了
@@ -231,41 +212,6 @@ EXTERN int properties_source_file_read(void* pfile, char* buf, int* size)
 
 
 
-
-// EXTERN  struct parse_source_t*  parse_source_new_from_file     (char* filename)
-// {
-//     ASSERT(NULL != filename);
-// 
-//     FILE* file = fopen(filename, "r");
-//     if (NULL == file)
-//     {
-//         return  NULL;
-//     }
-// 
-//     struct properties_source_file_t* source = (struct properties_source_file_t*)malloc(sizeof(struct properties_source_file_t));
-//     if (NULL == source)
-//     {
-//         return  NULL;
-//     }
-// 
-//     memset(source, 0, sizeof(struct properties_source_file_t));
-//     source->read    =   p_source_file_read;   
-//     source->free    =   p_source_file_free;
-//     source->file    =   file;
-// 
-//     return  (struct parse_source_t*)source;
-// }
-
-// static void     p_source_string_free(struct parse_source_t* source)
-// {
-//     if (NULL == source)
-//     {
-//         return;
-//     }
-// 
-//     free(source);
-//     return;
-// }
 
 EXTERN  int      properties_source_string_read(void* context, char* buf, int* size)
 {
@@ -298,44 +244,7 @@ EXTERN  int      properties_source_string_read(void* context, char* buf, int* si
     return 0;
 }
 
-// EXTERN  struct parse_source_t*    parse_source_new_from_string   (char* str, char* end)
-// {
-//     ASSERT(NULL != str);
-//     if (NULL == end)
-//     {
-//         end = str + strlen(str);
-//     }
-// 
-//     struct properties_source_string_t* source = (struct properties_source_string_t*)malloc(sizeof(struct properties_source_string_t));
-//     if (NULL == source)
-//     {
-//         return  NULL;
-//     }
-// 
-//     memset(source, 0, sizeof(struct parse_source_t));
-//     source->read    =   p_source_string_read;   
-//     source->free    =   p_source_string_free;
-//     source->str     =   str;
-//     source->end     =   end;
-//     source->pos     =   str;
-// 
-//     return  (struct parse_source_t*)source;
-// }
 
-// 
-// 
-// EXTERN  void    parse_source_del(struct parse_source_t* source)
-// {
-//     if (NULL == source)
-//     {
-//         return;
-//     }
-// 
-//     if (NULL != source->free)
-//     {
-//         source->free(source);
-//     }
-// }
 
 
 static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
@@ -412,6 +321,8 @@ retry:
 }
 
 
+
+
 static inline char* p_accept_comment(struct cache_t* cache, char* pos)
 {
     cache->pos = pos + 1;
@@ -446,6 +357,9 @@ retry:
 
     return cache->pos = pos;
 }
+
+
+
 
 static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, struct buf_t* buf)
 {
@@ -517,6 +431,7 @@ static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, st
 
 
 
+
 static inline char* p_accept_escape(struct cache_t* cache, char* pos, struct buf_t* buf)
 {
     cache->pos = pos;
@@ -562,6 +477,8 @@ retry:
         return cache->pos = pos + 1;
     }
 }
+
+
 
 
 char* p_accept_key(struct cache_t* cache)
@@ -616,6 +533,8 @@ char* p_accept_key(struct cache_t* cache)
 }
 
 
+
+
 static inline char* p_accept_value(struct cache_t* cache, struct buf_t* buf)
 {
     register char* pos = cache->pos;
@@ -666,12 +585,15 @@ static inline char* p_accept_value(struct cache_t* cache, struct buf_t* buf)
     }
 }
 
+
+
+
 static inline char* p_accept_spliter(struct cache_t* cache)
 {
     register char* pos = cache->pos;
 
 retry:
-    pos = p_skip_space(cache, pos + 1);
+    pos = p_skip_space(cache, pos);
 
     if (P_EOS&cm[*pos])
     {
@@ -706,58 +628,6 @@ retry:
 
 
 
-// int properties_parse         (struct parse_source_t* source)
-// {
-//     ASSERT(NULL != source);
-// 
-//     struct cache_t cache;
-//     cache.source    =   source;
-//     if (NULL != source->cache)
-//     {
-//         cache.cache     =   source->cache;
-//         cache.tail      =   source->cache + source->size;
-//         cache.outsize   =   1;
-//     }
-//     else
-//     {
-//         cache.cache     =   (char*)malloc(CACHE_SIZE_DEF);
-//         cache.outsize   =   0;
-//     }
-//     cache.lino      =   0;
-//     cache.line      =   cache.cache;
-//     cache.pos       =   cache.cache;
-//     cache.limit       =   cache.cache;
-// 
-//     switch (format[0])
-//     {
-//     case 'p':
-//         if (0 == strcmp(format, SOURCE_FORMAT_PROPERTIES))
-//         {
-//             return p_parse_format_properties(p, &cache);
-//         }
-//         return -1;
-//     case 'y':
-//         if (0 == strcmp(format, SOURCE_FORMAT_YAML))
-//         {
-//             return p_parse_format_yaml(p, &cache);
-//         }
-//         return -1;
-//     case 'x':
-//         if (0 == strcmp(format, SOURCE_FORMAT_XML))
-//         {
-//             return p_parse_format_xml(p, &cache);
-//         }
-//         return -1;
-//     case 'i':
-//         if (0 == strcmp(format, SOURCE_FORMAT_INI))
-//         {
-//             return p_parse_format_ini(p, &cache);
-//         }
-//         return -1;
-//     default:
-//         return -1;
-//     }
-// }
 
 static inline int   properties_load_impl(struct cache_t* cache, void* handler_context, PROPERTYS_HANDLER handler)
 {
@@ -831,6 +701,8 @@ static inline int   properties_load_impl(struct cache_t* cache, void* handler_co
         }
     }
 }
+
+
 
 
 int     properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler)

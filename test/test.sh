@@ -38,12 +38,12 @@ function    compile_c_tools()
 
 function    generate_expect_files()
 {
-    local files=$(ls | grep -E '[0-9]+\.properties$')
+    local files=$(cd ${SELFDIR};ls | grep -E '[0-9]+\.properties$')
     for file in ${files}; do
-        rm -rf  "${file}.java.expect"
-        cd      "${SELFDIR}" && java -cp "./" Main "${file}" > "${file}.java.expect"
+        rm -rf  "${SELFDIR}/${file}.j.expect"
+        cd      "${SELFDIR}" && java -cp "./" Main "${SELFDIR}/${file}" > "${SELFDIR}/${file}.j.expect"
         RESULT=$?
-        if [ ${RESULT} -ne 0 ] || [ ! -f "${file}.java.expect" ]; then
+        if [ ${RESULT} -ne 0 ] || [ ! -f "${file}.j.expect" ]; then
             echo    "Create expect file failed: ${file}"
             return  1
         fi 
@@ -57,22 +57,46 @@ function    generate_expect_files()
 
 function    run_teatcases()
 {
-    local exe_tool=${SELFDIR}/$(cd ${SELFDIR};ls | grep liproperties_test)
+    local exe_tool=${SELFDIR}/libproperties_test
+    if [ "x${OS}" == "xWindows_NT" ]; then
+        exe_tool=${SELFDIR}/libproperties_test.exe
+    fi
+
     if [ ! -f "${exe_tool}" ]; then
         echo    "The C test tool is not exist"
         return  3
     fi
 
-    files=$(ls -al | grep -E '[0-9]+\.properties$')
-    for file in $(files); do
-        rm -rf  "${file}.c.expect"
-        ${exe_tool} "${file}"
+
+    local fail_count=0
+    local files=$(cd "${SELFDIR}";ls | grep -E '[0-9]+\.properties$')
+    for file in ${files}; do
+        rm -rf  "${SELFDIR}/${file}.c.expect"
+        cd      "${SELFDIR}" && ${exe_tool} "${SELFDIR}/${file}" > "${SELFDIR}/${file}.c.expect"
         RESULT=$?
         if [ ${RESULT} -ne 0 ] || [ ! -f "${file}.c.expect" ]; then
-            echo    "Parse file failed: ${file}"
+            echo    "Parse file failed: ${SELFDIR}/${file}"
             return  4
         fi
+
+        dos2unix    "${SELFDIR}/${file}.c.expect"
+        dos2unix    "${SELFDIR}/${file}.j.expect"
+
+        diff -a -q -y  "${SELFDIR}/${file}.c.expect"   "${SELFDIR}/${file}.j.expect"
+        RESULT=$?
+        if [ ${RESULT} -ne 0 ]; then
+            echo    "[${file}]\tfail"
+            fail_count=`expr ${fail_count} + 1`
+        else
+            echo    "[${file}]\tok"
+        fi
     done
+
+
+    if [ ${fail_count} -ne 0 ]; then
+        echo    "Test failed"
+        return  1
+    fi
 
     return  0
 }

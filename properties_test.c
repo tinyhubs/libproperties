@@ -31,22 +31,18 @@ int main(int argc, char* argv[])
     int ret = properties_parse(file, properties_source_file_read, NULL, test_handler);
     fclose(file);
     
-    getchar();
+    //getchar();
     return ret;
 }
-// 
+
+
+
+
 // int main(int argc, char* argv[])
 // {
 //     char str[] = 
-//     "a=1\n"
-//     "b=2\n"
-//     "a=1\n"
-//     "#dsdsd\n"
-//     "a\\=1    1111111111    \n"
-//     "a=1    1111111111    \n"
-//     "a=1 \\\n"
-//     "   1111111111    \n"
-//     "a=1  \n  1111111111    \n"
+//     "hhh\n"
+//     "\thhh1\n"
 //     ;
 // 
 //     struct properties_source_string_t source = 
@@ -59,4 +55,4 @@ int main(int argc, char* argv[])
 //     getchar();
 // 	return 0;
 // }
-// 
+
