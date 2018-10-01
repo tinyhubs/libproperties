@@ -3,7 +3,6 @@
 libproperties is a library to parse the Java .properties files. It was writen in pure C. 
 And fullly compatible with the Java .properties file format.
 
-[TOC]
 
 ###	Build
 
