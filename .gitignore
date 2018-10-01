@@ -61,6 +61,7 @@ ipch
 *.sdf
 
 *.ipch
+*.exe
 *.map
 *.pdb
 *.lib
@@ -78,3 +79,10 @@ ipch
 *.iml
 *.class
 *.jar
+
+obj
+
+*.expect
+*.sln
+*.user
+*.vcxproj
