@@ -23,31 +23,10 @@
 #define CACHE_SIZE_DEF  (4*1024)
 
 
-//      解析的数据源
-struct parse_source_file_t
-{
-    PARSE_READ  read;       //  加载数据
-    PARSE_FREE  free;       //  释放输入源
-
-    FILE*       file;    //  输入流的上下文
-};
-
-
-//      解析的数据源
-struct parse_source_string_t
-{
-    PARSE_READ  read;       //  加载数据
-    PARSE_FREE  free;       //  释放输入源
-
-    char*       str;        //  字符串起始地址
-    char*       end;        //  字符串结束的位置
-    char*       pos;        //  缓冲区大小
-};
-
-
 struct cache_t
 {
-    struct parse_source_t*    source;
+    void*                   source_context;
+    PROPERTIES_SOURCE_READ  source_read;
     char*               cache;      //  缓冲器的起始位置
     char*               tail;       //  缓冲器的结束位置
 
@@ -205,34 +184,33 @@ static unsigned char cm[256] =
 };
 
 
-
-
-static void p_source_file_free(struct parse_source_t* psource)
-{
-    if (NULL == psource)
-    {
-        return;
-    }
-
-    struct parse_source_file_t* source = (struct parse_source_file_t*)psource;
-    if (NULL != source->file)
-    {
-        fclose((FILE*)(source->file));
-    }
-
-    free(source);
-}
-
+// 
+// 
+// static void p_source_file_free(struct parse_source_t* psource)
+// {
+//     if (NULL == psource)
+//     {
+//         return;
+//     }
+// 
+//     struct properties_source_file_t* source = (struct properties_source_file_t*)psource;
+//     if (NULL != source->file)
+//     {
+//         fclose((FILE*)(source->file));
+//     }
+// 
+//     free(source);
+// }
+// 
 
 
 
 //  文件已经结束或者文件读取已经出错了
-static int p_source_file_read(struct parse_source_t* psource, char* buf, int* size)
+EXTERN int properties_source_file_read(void* pfile, char* buf, int* size)
 {
-    ASSERT(NULL != psource);
+    ASSERT(NULL != pfile);
 
-    struct parse_source_file_t* source = (struct parse_source_file_t*)psource;
-    FILE* file = source->file;
+    FILE* file = (FILE*)pfile;
     if (feof(file))
     {
         size = 0;
@@ -254,54 +232,54 @@ static int p_source_file_read(struct parse_source_t* psource, char* buf, int* si
 
 
 
-EXTERN  struct parse_source_t*  parse_source_new_from_file     (char* filename)
+// EXTERN  struct parse_source_t*  parse_source_new_from_file     (char* filename)
+// {
+//     ASSERT(NULL != filename);
+// 
+//     FILE* file = fopen(filename, "r");
+//     if (NULL == file)
+//     {
+//         return  NULL;
+//     }
+// 
+//     struct properties_source_file_t* source = (struct properties_source_file_t*)malloc(sizeof(struct properties_source_file_t));
+//     if (NULL == source)
+//     {
+//         return  NULL;
+//     }
+// 
+//     memset(source, 0, sizeof(struct properties_source_file_t));
+//     source->read    =   p_source_file_read;   
+//     source->free    =   p_source_file_free;
+//     source->file    =   file;
+// 
+//     return  (struct parse_source_t*)source;
+// }
+
+// static void     p_source_string_free(struct parse_source_t* source)
+// {
+//     if (NULL == source)
+//     {
+//         return;
+//     }
+// 
+//     free(source);
+//     return;
+// }
+
+EXTERN  int      properties_source_string_read(void* context, char* buf, int* size)
 {
-    ASSERT(NULL != filename);
+    ASSERT(NULL != context);
 
-    FILE* file = fopen(filename, "r");
-    if (NULL == file)
-    {
-        return  NULL;
-    }
+    struct properties_source_string_t* source = (struct properties_source_string_t*)context;
 
-    struct parse_source_file_t* source = (struct parse_source_file_t*)malloc(sizeof(struct parse_source_file_t));
-    if (NULL == source)
-    {
-        return  NULL;
-    }
-
-    memset(source, 0, sizeof(struct parse_source_file_t));
-    source->read    =   p_source_file_read;   
-    source->free    =   p_source_file_free;
-    source->file    =   file;
-
-    return  (struct parse_source_t*)source;
-}
-
-static void     p_source_string_free(struct parse_source_t* source)
-{
-    if (NULL == source)
-    {
-        return;
-    }
-
-    free(source);
-    return;
-}
-
-static int      p_source_string_read(struct parse_source_t* psource, char* buf, int* size)
-{
-    ASSERT(NULL != psource);
-
-    struct parse_source_string_t* source = (struct parse_source_string_t*)psource;
-
-    if (source->end == source->pos)
+    if (source->end == source->str)
     {
         *size = 0;
         return 1;
     }
 
-    int copy_len = (source->end - source->pos);
+    int copy_len = (source->end - source->str);
     if (copy_len > *size)
     {
         copy_len = *size;
@@ -313,51 +291,51 @@ static int      p_source_string_read(struct parse_source_t* psource, char* buf, 
         return 0;
     }
 
-    memcpy(buf, source->pos, copy_len);
-    source->pos += copy_len;
+    memcpy(buf, source->str, copy_len);
+    source->str += copy_len;
 
     *size = copy_len;
     return 0;
 }
 
-EXTERN  struct parse_source_t*    parse_source_new_from_string   (char* str, char* end)
-{
-    ASSERT(NULL != str);
-    if (NULL == end)
-    {
-        end = str + strlen(str);
-    }
+// EXTERN  struct parse_source_t*    parse_source_new_from_string   (char* str, char* end)
+// {
+//     ASSERT(NULL != str);
+//     if (NULL == end)
+//     {
+//         end = str + strlen(str);
+//     }
+// 
+//     struct properties_source_string_t* source = (struct properties_source_string_t*)malloc(sizeof(struct properties_source_string_t));
+//     if (NULL == source)
+//     {
+//         return  NULL;
+//     }
+// 
+//     memset(source, 0, sizeof(struct parse_source_t));
+//     source->read    =   p_source_string_read;   
+//     source->free    =   p_source_string_free;
+//     source->str     =   str;
+//     source->end     =   end;
+//     source->pos     =   str;
+// 
+//     return  (struct parse_source_t*)source;
+// }
 
-    struct parse_source_string_t* source = (struct parse_source_string_t*)malloc(sizeof(struct parse_source_string_t));
-    if (NULL == source)
-    {
-        return  NULL;
-    }
-
-    memset(source, 0, sizeof(struct parse_source_t));
-    source->read    =   p_source_string_read;   
-    source->free    =   p_source_string_free;
-    source->str     =   str;
-    source->end     =   end;
-    source->pos     =   str;
-
-    return  (struct parse_source_t*)source;
-}
-
-
-
-EXTERN  void    parse_source_del(struct parse_source_t* source)
-{
-    if (NULL == source)
-    {
-        return;
-    }
-
-    if (NULL != source->free)
-    {
-        source->free(source);
-    }
-}
+// 
+// 
+// EXTERN  void    parse_source_del(struct parse_source_t* source)
+// {
+//     if (NULL == source)
+//     {
+//         return;
+//     }
+// 
+//     if (NULL != source->free)
+//     {
+//         source->free(source);
+//     }
+// }
 
 
 static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
@@ -382,7 +360,7 @@ static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
 
     //  读取新数据填充缓冲区
     int remain_size = cache->tail - cache->limit;
-    int ret = cache->source->read(cache->source, cache->limit, &remain_size);
+    int ret = cache->source_read(cache->source_context, cache->limit, &remain_size);
 
     //  文件已经结束或者文件读取已经出错了
     if (ret != 0)
@@ -728,7 +706,7 @@ retry:
 
 
 
-// int properties_load         (struct parse_source_t* source)
+// int properties_parse         (struct parse_source_t* source)
 // {
 //     ASSERT(NULL != source);
 // 
@@ -781,7 +759,7 @@ retry:
 //     }
 // }
 
-static inline int   properties_load_impl(struct cache_t* cache, HANDLE_PROPERTY handle, void* context)
+static inline int   properties_load_impl(struct cache_t* cache, void* handler_context, PROPERTYS_HANDLER handler)
 {
     register char*  pos   = p_cache_read_more(cache, cache->pos);
     while (1)
@@ -834,7 +812,7 @@ static inline int   properties_load_impl(struct cache_t* cache, HANDLE_PROPERTY 
         {
             cache->key = buf_append_char(cache->key, '\0');
             cache->val = buf_append_char(cache->val, '\0');
-            if (0 != handle(context, cache->key->data, cache->key->len, cache->val->data, cache->val->len))
+            if (0 != handler(handler_context, cache->key->data, cache->key->len, cache->val->data, cache->val->len))
             {
                 return 0;
             }
@@ -847,7 +825,7 @@ static inline int   properties_load_impl(struct cache_t* cache, HANDLE_PROPERTY 
 
         cache->key = buf_append_char(cache->key, '\0');
         cache->val = buf_append_char(cache->val, '\0');
-        if (0 != handle(context, cache->key->data, cache->key->len - 1, cache->val->data, cache->val->len - 1))
+        if (0 != handler(handler_context, cache->key->data, cache->key->len - 1, cache->val->data, cache->val->len - 1))
         {
             return 0;
         }
@@ -855,10 +833,11 @@ static inline int   properties_load_impl(struct cache_t* cache, HANDLE_PROPERTY 
 }
 
 
-int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY handle, void* context)
+int     properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler)
 {
     struct cache_t cache;
-    cache.source    =   source;
+    cache.source_context    =   source_context;
+    cache.source_read       =   source_read;
     cache.cache     =   (char*)alloca(CACHE_SIZE_DEF + 1);
     cache.tail      =   cache.cache + CACHE_SIZE_DEF;
     cache.limit     =   cache.cache;
@@ -880,5 +859,5 @@ int     properties_load(struct parse_source_t* source, HANDLE_PROPERTY handle, v
         return -1;
     }
 
-    return properties_load_impl(&cache, handle, context);
+    return properties_load_impl(&cache, handler_context, handler);
 }

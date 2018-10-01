@@ -1,16 +1,16 @@
 
 --	premake5 --file=libproperties.premake vs2010
 
-workspace   "libproperties"
-    configurations  {"Debug", "Release"}
+workspace   "libproperties_test"
+    configurations  {"Debug"}
     
 project     "libproperties_test"
-    language    "C++"
-    kind        "ConsoleApp" 
+	language    "C++"
+	kind        "ConsoleApp" 
 
-    files   {"*.h", "*.c"}
+	files   {"*.h", "*.c"}
 
-    filter "configurations:Debug"
-        defines { "DEBUG" }
-        symbols "On"
+	filter "configurations:Debug"
+	    defines { "DEBUG" }
+	    symbols "On"
 
