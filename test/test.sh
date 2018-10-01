@@ -1,4 +1,4 @@
-#!/usr/bin/bash -x
+#!/usr/bin/bash
 
 
 SELFDIR=$(cd $(dirname $0);pwd)
