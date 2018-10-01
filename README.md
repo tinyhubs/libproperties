@@ -3,7 +3,7 @@
 libproperties is a library to parse the Java .properties files. It was writen in pure C. 
 And fullly compatible with the Java .properties file format.
 
-#	Build
+###	Build
 
 This library is very small. I am not ready provide the makefile for it. 
 You can add this file in your project and compile with you project together.
@@ -14,7 +14,7 @@ You need just two file below to your project:
 - buf.c
 
 
-#	Usage
+###	Usage
 
 The kernel function of this library is `properties_parse`
 
@@ -32,7 +32,7 @@ This library have provided two `source_read` function by default.
 - Read input text from a file, please use `properties_source_file_read`.
 - Read input text from simple string, please use `properties_source_file_string`.
 
-### Sample 1: Read from file:
+##### *Sample 1: Read from file*
 
 ```C
 int     test_handler(void* context, char* key, int key_len, char* val, int val_len)
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 }
 ```
 
-### Sample 2: Read from string:
+##### *Sample 2: Read from string*
 
 ```C
 int     test_handler(void* context, char* key, int key_len, char* val, int val_len)
@@ -94,23 +94,23 @@ int main(int argc, char* argv[])
 ```
 
 
-#	Test
+###	Test
 
-- Requrement
+#####  Requrement
 
-**Windows**
+*Windows*
 
-  * [premake](https://premake.github.io/)
-  * [MSYS2](http://www.msys2.org/)
-  * Visual Studio 2010 or later
+   * [premake](https://premake.github.io/)
+   * [MSYS2](http://www.msys2.org/)
+   * Visual Studio 2010 or later
 
-**Linux/Unix**
+*Linux/Unix*
 
-  * [premake](https://premake.github.io/)
+   * [premake](https://premake.github.io/)
 
-- Generage the makefile(Linux/Unix) or project file
+#####  Generage the makefile(Linux/Unix) or project file
 
-**Windows**
+*Windows*
 
 ```sh
 premake5 --file=libproperties_test.premake vs2010
@@ -124,25 +124,25 @@ The `vs2010` should be replace with one of below, which is depended the version 
   * vs2015
   * vs2017
 
-**Linux/Unix**
+*Linux/Unix*
 
 ```sh
 premake5 --file=libproperties_test.premake gmake
 ```
 
-- Build the test tool
+#####  Build the test tool
 
-**Windows**
+*Windows*
 
 Open the `libproperties_test.sln` with your IDE, and then press F7
 
-**Linux**
+*Linux*
 
 ```sh
 make clean && make
 ```
 
-- Run test cases
+##### Run test cases
 
 If your system is Windows, you need open the bash of MSYS2 first.
 
@@ -161,78 +161,15 @@ And there is a simple one which provide by `Wikipedia` [here](https://en.wikiped
 
 #	Encode
 
-UTF-8 or ASCII 
+UTF-8
 
 
 #	Custom the input source
 
-Generally speaking, the `parse_source_new_from_file` and `parse_source_new_from_string` is enough.
-But some times we have to custom ourself input source. 
-Such as, the input source gived is not a file name, but file handle. 
-This time, we can create a new type of input source:
+Generally speaking, the `properties_source_file_read` and `properties_source_string_read` is enough.
+If you want, you can provided a new function yourself. But the function must flow the prototype of `PROPERTIES_SOURCE_READ`.
+Please refer the `properties.h` to see rules of function `PROPERTIES_SOURCE_READ`.
 
-#### 1. Declare your new `parse_source_t`:
-
-```c
-struct my_file_source_t
-{
-	struct parse_source_t	source;
-	FILE*					file;
-};
-```
-
-#### 2. Implement the `PARSE_READ` and `PARSE_FREE` function:
-
-```c
-int     file_source_read(struct parse_source_t* source, char* buf, int size)
-{
-	struct my_file_source_t* my_source = (struct my_file_source_t*)source;
-	FILE* file = my_source->file;
-	if (feof(file))
-	{
-		return 0;
-	}
-
-	if (ferror(file))
-	{
-		return -1;
-	}
-
-	size_t read_size = fread(buf, size, file);
-	if (read_size > 0)
-	{
-		return read_size;
-	}
-
-	return read_size;
-}
-
-void    file_source_free(struct parse_source_t* source)
-{
-	struct my_file_source_t* my_source = (struct my_file_source_t*)source;
-	fclose(my_source->file);
-}
-
-```
-
-#### 3. Define a function to initialize your input source:
-
-```C
-struct my_file_source_t* my_file_source_init(struct my_file_source_t* my_source, FILE* file)
-{
-	my_source->source.read = file_source_read;
-	my_source->source.free = file_source_free;
-	my_source->file        = file;
-	return my_source;
-}
-```
-
-#### 4. Enjoy your new input source:
-
-```c
-struct my_file_source_t my_source;
-properties_load(my_file_source_init(&my_source, file), handle, NULL);
-```
 
 #	BOM
 
