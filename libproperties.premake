@@ -7,10 +7,12 @@ workspace   "libproperties_test"
 project     "libproperties_test"
     language        "C"
     kind            "ConsoleApp" 
-    buildoutputs    "test"
+    targetdir       ("test")
+
 
     files           {"*.h", "*.c"}
     compileas      "C++"
+
 
     filter          "configurations:Debug"
         defines     {"DEBUG"}
