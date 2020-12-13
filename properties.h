@@ -1,13 +1,9 @@
 #ifndef __properties_H_
 #define __properties_H_
 
-#ifndef EXTERN
 #ifdef __cplusplus
-#define EXTERN extern "C"
-#else
-#define EXTERN
+#define EXTERN extern "C" {
 #endif
-#endif //EXTERN
 
 //! This function will be called when the parser need more text.
 //
@@ -41,11 +37,11 @@ typedef int (*PROPERTYS_HANDLER)(void* context, char* key, int key_len, char* va
 //  \param  handler         The callback function, to notify the user that the parser find a new key-value pair.
 //
 //  \return If there is no error, return 0, otherwise return -1.
-EXTERN int properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler);
+int properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler);
 
 //! The function `properties_source_file_read` is the default implement for read from a file.
 //  \notice The `file` Should be a `FILE*`.
-EXTERN int properties_source_file_read(void* file, char* buf, int* size);
+int properties_source_file_read(void* file, char* buf, int* size);
 
 //! The function `properties_source_string_read` is the default implement for read from a string.
 //  To use this function, you need fill the `struct properties_source_string_t`, and give it is as
@@ -54,6 +50,10 @@ struct properties_source_string_t {
     char* str; ///<    The start address of the input string.
     char* end; ///<    The end address of the input string.
 };
-EXTERN int properties_source_string_read(void* source, char* buf, int* size);
+int properties_source_string_read(void* source, char* buf, int* size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__properties_H_
