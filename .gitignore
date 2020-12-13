@@ -91,3 +91,6 @@ obj
 *.tar.gz
 *.zip
 
+pack/
+
+

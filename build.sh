@@ -49,12 +49,14 @@ function do_package()
 
     mkdir   -p  "${SELFDIR}/pack/include"
     mkdir   -p  "${SELFDIR}/pack/lib"
+    mkdir   -p  "${SELFDIR}/pack/licenses"
 
     local package_name="${PROJECT_NAME}-${PROJECT_SYSTEM}-${PROJECT_HARDWARE}-${PROJECT_VERSION}"
 
     cd          "${SELFDIR}/pack"                                       &&  \
-    cp -rf      "${SELFDIR}/lib"/*          "${SELFDIR}/pack/lib/"      &&  \
+    cp -Rf      "${SELFDIR}/lib"/*          "${SELFDIR}/pack/lib/"      &&  \
     cp -rf      "${SELFDIR}/properties.h"   "${SELFDIR}/pack/include/"  &&  \
+    cp -rf      "${SELFDIR}/LICENSE"        "${SELFDIR}/pack/licenses/" &&  \
     tar -cvzf   "${package_name}.tar.gz"    *                           &&  \
     mv          "${package_name}.tar.gz"    "${SELFDIR}"
     RESULT=$?
@@ -63,7 +65,7 @@ function do_package()
         return  2
     fi
 
-    rm -rf      "${SELFDIR}/pack"
+    #rm -rf      "${SELFDIR}/pack"
 
     return  0
 }
