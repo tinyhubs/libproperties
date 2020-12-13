@@ -16,14 +16,19 @@ set(CMAKE_C_FLAGS "-fsigned-char ${CMAKE_C_FLAGS}")
 #   Define the target
 add_library(properties buf.c properties.c)
 set_target_properties(properties PROPERTIES
-    VERSION     ${PROJECT_VERSION}
-    SOVERSION   ${PROJECT_VERSION_MAJOR}
-    EXPORT_NAME libproperties
+    VERSION             ${PROJECT_VERSION}
+    SOVERSION           ${PROJECT_VERSION_MAJOR}
+    EXPORT_NAME         libproperties
+    DEFINE_SYMBOL       LIBPROPERTIES_EXPORT
+    C_VISIBILITY_PRESET hidden
 )
 target_include_directories(properties PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+if(NOT BUILD_SHARED_LIBS)
+    target_compile_definitions(properties PUBLIC LIBPROPERTIES_STATIC)
+endif()
 
 #   Install the library + header + cmake config file
 option(LIBPROPERTIES_INSTALL "Install libproperties" ON)
