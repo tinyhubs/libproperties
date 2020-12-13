@@ -1,238 +1,217 @@
 #include "properties.h"
 #include "buf.h"
 
-
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#ifdef  _MSC_VER
+#ifdef _MSC_VER
 #include <malloc.h>
 #else
 #include <alloca.h>
-#endif//_MSC_VER
-
+#endif //_MSC_VER
 
 #ifndef ASSERT
-#define ASSERT(e)   assert(e)
-#endif//ASSERT
+#define ASSERT(e) assert(e)
+#endif //ASSERT
 
+//  Áº∫ÁúÅ cache ÁöÑÂ§ßÂ∞è
+#define CACHE_SIZE_DEF (4 * 1024)
 
+struct cache_t {
+    void* source_context;
+    PROPERTIES_SOURCE_READ source_read;
+    char* cache; //  ÁºìÂÜ≤Âô®ÁöÑËµ∑Âßã‰ΩçÁΩÆ
+    char* tail; //  ÁºìÂÜ≤Âô®ÁöÑÁªìÊùü‰ΩçÁΩÆ
 
-//  »± ° cache µƒ¥Û–°
-#define CACHE_SIZE_DEF  (4*1024)
+    int lino; //  Ë°åÂè∑
+    char* line; //  Ë°åÁöÑËµ∑Âßã‰ΩçÁΩÆ
+    char* pos; //  ÂΩìÂâçÂ∑≤ÁªèËØÜÂà´Âà∞ÁöÑ‰ΩçÁΩÆ
+    char* limit; //  cache ÁöÑÁªìÂ∞æ
 
-
-struct cache_t
-{
-    void*                   source_context;
-    PROPERTIES_SOURCE_READ  source_read;
-    char*               cache;      //  ª∫≥Â∆˜µƒ∆ ºŒª÷√
-    char*               tail;       //  ª∫≥Â∆˜µƒΩ· ¯Œª÷√
-
-    int                 lino;       //  ––∫≈
-    char*               line;       //  ––µƒ∆ ºŒª÷√
-    char*               pos;        //  µ±«∞“—æ≠ ∂±µΩµƒŒª÷√
-    char*               limit;      //  cache µƒΩ·Œ≤
-
-    struct buf_t*       key;
-    struct buf_t*       val; 
+    struct buf_t* key;
+    struct buf_t* val;
 };
 
-
-enum
-{
-    P_NEWLINE   =   (0x01), //  \n  \r
-    P_SPLITER   =   (0x02), //  :   = 
-    P_ESCAPE    =   (0x04), //  \\  (∑¥–±∏‹◊™“Â◊÷∑˚)
-    P_SPACE     =   (0x08), //  0x20(space) 0x09(tab \t) 0x0C(ªª“≥ \f)
-    P_COMMENT   =   (0x10), //  #   !
-    P_EOS       =   (0x20), //  \0 
+enum {
+    P_NEWLINE = (0x01), //  \n  \r
+    P_SPLITER = (0x02), //  :   =
+    P_ESCAPE = (0x04), //  \\  (ÂèçÊñúÊù†ËΩ¨‰πâÂ≠óÁ¨¶)
+    P_SPACE = (0x08), //  0x20(space) 0x09(tab \t) 0x0C(Êç¢È°µ \f)
+    P_COMMENT = (0x10), //  #   !
+    P_EOS = (0x20), //  \0
 };
 
-
-static unsigned char cm[256] = 
-{
-    /*  00  NUL     */  P_EOS,
-    /*  01  SOH     */  0,
-    /*  02  STX     */  0,
-    /*  03  ETX     */  0,
-    /*  04  EOT     */  0,
-    /*  05  ENQ     */  0,
-    /*  06  ACK     */  0,
-    /*  07  BEL     */  0,
-    /*  08  BS      */  0,
-    /*  09  HT      */  P_SPACE,
-    /*  0A  LF      */  P_NEWLINE,
-    /*  0B  VT      */  0,
-    /*  0C  FF      */  P_SPACE,
-    /*  0D  CR      */  0,
-    /*  0E  SO      */  0,
-    /*  0F  SI      */  0,
-    /*  10  DLE     */  0,
-    /*  11  DC1     */  0,
-    /*  12  DC2     */  0,
-    /*  13  DC3     */  0,
-    /*  14  DC4     */  0,
-    /*  15  NAK     */  0,
-    /*  16  SYN     */  0,
-    /*  17  ETB     */  0,
-    /*  18  CAN     */  0,
-    /*  19  EM      */  0,
-    /*  1A  SUB     */  0,
-    /*  1B  ESC     */  0,
-    /*  1C  FS      */  0,
-    /*  1D  GS      */  0,
-    /*  1E  RS      */  0,
-    /*  1F  US      */  0,
-    /*  20  (space) */  P_SPACE,
-    /*  21  !       */  P_COMMENT,
-    /*  22  "       */  0,
-    /*  23  #       */  P_COMMENT,
-    /*  24  $       */  0,
-    /*  25  %       */  0,
-    /*  26  &       */  0,
-    /*  27  '       */  0,
-    /*  28  (       */  0,
-    /*  29  )       */  0,
-    /*  2A  *       */  0,
-    /*  2B  +       */  0,
-    /*  2C  ,       */  0,
-    /*  2D  -       */  0,
-    /*  2E  .       */  0,
-    /*  2F  /       */  0,
-    /*  30  0       */  0,
-    /*  31  1       */  0,
-    /*  32  2       */  0,
-    /*  33  3       */  0,
-    /*  34  4       */  0,
-    /*  35  5       */  0,
-    /*  36  6       */  0,
-    /*  37  7       */  0,
-    /*  38  8       */  0,
-    /*  39  9       */  0,
-    /*  3A  :       */  P_SPLITER,
-    /*  3B  ;       */  0,
-    /*  3C  <       */  0,
-    /*  3D  =       */  P_SPLITER,
-    /*  3E  >       */  0,
-    /*  3F  ?       */  0,
-    /*  40  @       */  0,
-    /*  41  A       */  0,
-    /*  42  B       */  0,
-    /*  43  C       */  0,
-    /*  44  D       */  0,
-    /*  45  E       */  0,
-    /*  46  F       */  0,
-    /*  47  G       */  0,
-    /*  48  H       */  0,
-    /*  49  I       */  0,
-    /*  4A  J       */  0,
-    /*  4B  K       */  0,
-    /*  4C  L       */  0,
-    /*  4D  M       */  0,
-    /*  4E  N       */  0,
-    /*  4F  O       */  0,
-    /*  50  P       */  0,
-    /*  51  Q       */  0,
-    /*  52  R       */  0,
-    /*  53  S       */  0,
-    /*  54  T       */  0,
-    /*  55  U       */  0,
-    /*  56  V       */  0,
-    /*  57  W       */  0,
-    /*  58  X       */  0,
-    /*  59  Y       */  0,
-    /*  5A  Z       */  0,
-    /*  5B  [       */  0,
-    /*  5C  \       */  P_ESCAPE,
-    /*  5D  ]       */  0,
-    /*  5E  ^       */  0,
-    /*  5F  _       */  0,
-    /*  60  `       */  0,
-    /*  61  a       */  0,
-    /*  62  b       */  0,
-    /*  63  c       */  0,
-    /*  64  d       */  0,
-    /*  65  e       */  0,
-    /*  66  f       */  0,
-    /*  67  g       */  0,
-    /*  68  h       */  0,
-    /*  69  i       */  0,
-    /*  6A  j       */  0,
-    /*  6B  k       */  0,
-    /*  6C  l       */  0,
-    /*  6D  m       */  0,
-    /*  6E  n       */  0,
-    /*  6F  o       */  0,
-    /*  70  p       */  0,
-    /*  71  q       */  0,
-    /*  72  r       */  0,
-    /*  73  s       */  0,
-    /*  74  t       */  0,
-    /*  75  u       */  0,
-    /*  76  v       */  0,
-    /*  77  w       */  0,
-    /*  78  x       */  0,
-    /*  79  y       */  0,
-    /*  7A  z       */  0,
-    /*  7B  {       */  0,
-    /*  7C  |       */  0,
-    /*  7D  }       */  0,
-    /*  7E  ~       */  0,
-    /*  7F  DEL     */  0,
+static unsigned char cm[256] = {
+    /*  00  NUL     */ P_EOS,
+    /*  01  SOH     */ 0,
+    /*  02  STX     */ 0,
+    /*  03  ETX     */ 0,
+    /*  04  EOT     */ 0,
+    /*  05  ENQ     */ 0,
+    /*  06  ACK     */ 0,
+    /*  07  BEL     */ 0,
+    /*  08  BS      */ 0,
+    /*  09  HT      */ P_SPACE,
+    /*  0A  LF      */ P_NEWLINE,
+    /*  0B  VT      */ 0,
+    /*  0C  FF      */ P_SPACE,
+    /*  0D  CR      */ 0,
+    /*  0E  SO      */ 0,
+    /*  0F  SI      */ 0,
+    /*  10  DLE     */ 0,
+    /*  11  DC1     */ 0,
+    /*  12  DC2     */ 0,
+    /*  13  DC3     */ 0,
+    /*  14  DC4     */ 0,
+    /*  15  NAK     */ 0,
+    /*  16  SYN     */ 0,
+    /*  17  ETB     */ 0,
+    /*  18  CAN     */ 0,
+    /*  19  EM      */ 0,
+    /*  1A  SUB     */ 0,
+    /*  1B  ESC     */ 0,
+    /*  1C  FS      */ 0,
+    /*  1D  GS      */ 0,
+    /*  1E  RS      */ 0,
+    /*  1F  US      */ 0,
+    /*  20  (space) */ P_SPACE,
+    /*  21  !       */ P_COMMENT,
+    /*  22  "       */ 0,
+    /*  23  #       */ P_COMMENT,
+    /*  24  $       */ 0,
+    /*  25  %       */ 0,
+    /*  26  &       */ 0,
+    /*  27  '       */ 0,
+    /*  28  (       */ 0,
+    /*  29  )       */ 0,
+    /*  2A  *       */ 0,
+    /*  2B  +       */ 0,
+    /*  2C  ,       */ 0,
+    /*  2D  -       */ 0,
+    /*  2E  .       */ 0,
+    /*  2F  /       */ 0,
+    /*  30  0       */ 0,
+    /*  31  1       */ 0,
+    /*  32  2       */ 0,
+    /*  33  3       */ 0,
+    /*  34  4       */ 0,
+    /*  35  5       */ 0,
+    /*  36  6       */ 0,
+    /*  37  7       */ 0,
+    /*  38  8       */ 0,
+    /*  39  9       */ 0,
+    /*  3A  :       */ P_SPLITER,
+    /*  3B  ;       */ 0,
+    /*  3C  <       */ 0,
+    /*  3D  =       */ P_SPLITER,
+    /*  3E  >       */ 0,
+    /*  3F  ?       */ 0,
+    /*  40  @       */ 0,
+    /*  41  A       */ 0,
+    /*  42  B       */ 0,
+    /*  43  C       */ 0,
+    /*  44  D       */ 0,
+    /*  45  E       */ 0,
+    /*  46  F       */ 0,
+    /*  47  G       */ 0,
+    /*  48  H       */ 0,
+    /*  49  I       */ 0,
+    /*  4A  J       */ 0,
+    /*  4B  K       */ 0,
+    /*  4C  L       */ 0,
+    /*  4D  M       */ 0,
+    /*  4E  N       */ 0,
+    /*  4F  O       */ 0,
+    /*  50  P       */ 0,
+    /*  51  Q       */ 0,
+    /*  52  R       */ 0,
+    /*  53  S       */ 0,
+    /*  54  T       */ 0,
+    /*  55  U       */ 0,
+    /*  56  V       */ 0,
+    /*  57  W       */ 0,
+    /*  58  X       */ 0,
+    /*  59  Y       */ 0,
+    /*  5A  Z       */ 0,
+    /*  5B  [       */ 0,
+    /*  5C  \       */ P_ESCAPE,
+    /*  5D  ]       */ 0,
+    /*  5E  ^       */ 0,
+    /*  5F  _       */ 0,
+    /*  60  `       */ 0,
+    /*  61  a       */ 0,
+    /*  62  b       */ 0,
+    /*  63  c       */ 0,
+    /*  64  d       */ 0,
+    /*  65  e       */ 0,
+    /*  66  f       */ 0,
+    /*  67  g       */ 0,
+    /*  68  h       */ 0,
+    /*  69  i       */ 0,
+    /*  6A  j       */ 0,
+    /*  6B  k       */ 0,
+    /*  6C  l       */ 0,
+    /*  6D  m       */ 0,
+    /*  6E  n       */ 0,
+    /*  6F  o       */ 0,
+    /*  70  p       */ 0,
+    /*  71  q       */ 0,
+    /*  72  r       */ 0,
+    /*  73  s       */ 0,
+    /*  74  t       */ 0,
+    /*  75  u       */ 0,
+    /*  76  v       */ 0,
+    /*  77  w       */ 0,
+    /*  78  x       */ 0,
+    /*  79  y       */ 0,
+    /*  7A  z       */ 0,
+    /*  7B  {       */ 0,
+    /*  7C  |       */ 0,
+    /*  7D  }       */ 0,
+    /*  7E  ~       */ 0,
+    /*  7F  DEL     */ 0,
 };
 
-
-
-
-//  Œƒº˛“—æ≠Ω· ¯ªÚ’ﬂŒƒº˛∂¡»°“—æ≠≥ˆ¥Ì¡À
+//  Êñá‰ª∂Â∑≤ÁªèÁªìÊùüÊàñËÄÖÊñá‰ª∂ËØªÂèñÂ∑≤ÁªèÂá∫Èîô‰∫Ü
 EXTERN int properties_source_file_read(void* pfile, char* buf, int* size)
 {
     ASSERT(NULL != pfile);
 
     FILE* file = (FILE*)pfile;
-    if (feof(file))
-    {
+    if (feof(file)) {
         size = 0;
-        return  1;
+        return 1;
     }
 
-    if (ferror(file))
-    {
+    if (ferror(file)) {
         size = 0;
         return -1;
     }
 
-    //  ø™ º∂¡»°
-    size_t read_size   = fread(buf, 1, *size, file);
+    //  ÂºÄÂßãËØªÂèñ
+    size_t read_size = fread(buf, 1, *size, file);
     *size = read_size;
     return 0;
 }
 
-
-
-
-EXTERN  int      properties_source_string_read(void* context, char* buf, int* size)
+EXTERN int properties_source_string_read(void* context, char* buf, int* size)
 {
     ASSERT(NULL != context);
 
     struct properties_source_string_t* source = (struct properties_source_string_t*)context;
 
-    if (source->end == source->str)
-    {
+    if (source->end == source->str) {
         *size = 0;
         return 1;
     }
 
     int copy_len = (source->end - source->str);
-    if (copy_len > *size)
-    {
+    if (copy_len > *size) {
         copy_len = *size;
     }
 
-    if (0 == copy_len)
-    {
+    if (0 == copy_len) {
         *size = copy_len;
         return 0;
     }
@@ -244,36 +223,30 @@ EXTERN  int      properties_source_string_read(void* context, char* buf, int* si
     return 0;
 }
 
-
-
-
 static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
 {
-    //  …Ë÷√÷’÷πŒª÷√
+    //  ËÆæÁΩÆÁªàÊ≠¢‰ΩçÁΩÆ
     cache->pos = pos;
 
-    //  »Áπ˚ª∫≥Â«¯¿Ô√Êªπ”– ˝æ›¥Ê‘⁄£¨ƒ«√¥–Ë“™∞·“∆ ˝æ›£¨“‘±„Ã⁄≥ˆ∏¸∂‡µƒø’º‰
-    int offset    = cache->pos - cache->cache;  //  –Ë“™“∆∂Ø∂‡‘∂
-    if (offset > 0)
-    {
-        int move_size = cache->limit - cache->pos;    //  –Ë“™“∆∂Ø∂‡…Ÿ ˝æ›
-        if (move_size > 0)
-        {
+    //  Â¶ÇÊûúÁºìÂÜ≤Âå∫ÈáåÈù¢ËøòÊúâÊï∞ÊçÆÂ≠òÂú®ÔºåÈÇ£‰πàÈúÄË¶ÅÊê¨ÁßªÊï∞ÊçÆÔºå‰ª•‰æøËÖæÂá∫Êõ¥Â§öÁöÑÁ©∫Èó¥
+    int offset = cache->pos - cache->cache; //  ÈúÄË¶ÅÁßªÂä®Â§öËøú
+    if (offset > 0) {
+        int move_size = cache->limit - cache->pos; //  ÈúÄË¶ÅÁßªÂä®Â§öÂ∞ëÊï∞ÊçÆ
+        if (move_size > 0) {
             memmove(cache->cache, pos, move_size);
         }
-        cache->line     -= offset;
-        cache->pos      -= offset;
-        cache->limit    -= offset;
+        cache->line -= offset;
+        cache->pos -= offset;
+        cache->limit -= offset;
         cache->limit[0] = '\0';
     }
 
-    //  ∂¡»°–¬ ˝æ›ÃÓ≥‰ª∫≥Â«¯
+    //  ËØªÂèñÊñ∞Êï∞ÊçÆÂ°´ÂÖÖÁºìÂÜ≤Âå∫
     int remain_size = cache->tail - cache->limit;
     int ret = cache->source_read(cache->source_context, cache->limit, &remain_size);
 
-    //  Œƒº˛“—æ≠Ω· ¯ªÚ’ﬂŒƒº˛∂¡»°“—æ≠≥ˆ¥Ì¡À
-    if (ret != 0)
-    {
+    //  Êñá‰ª∂Â∑≤ÁªèÁªìÊùüÊàñËÄÖÊñá‰ª∂ËØªÂèñÂ∑≤ÁªèÂá∫Èîô‰∫Ü
+    if (ret != 0) {
         return cache->pos;
     }
 
@@ -282,112 +255,90 @@ static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
     return cache->pos;
 }
 
-
-
-
 static inline char* p_skip_space(struct cache_t* cache, char* pos)
 {
     cache->pos = pos;
 
 retry:
-    //  Ã¯π˝À˘”–µƒø’∞◊
-    while (P_SPACE&cm[*pos])
-    {
+    //  Ë∑≥ËøáÊâÄÊúâÁöÑÁ©∫ÁôΩ
+    while (P_SPACE & cm[*pos]) {
         pos++;
     }
 
-    //  »Áπ˚”ˆµΩµƒ « \0 ∑˚∫≈£¨ƒ«√¥Œ“√«ø…“‘»œŒ™ø…ƒ‹”ˆµΩ¡Àª∫≥Â«¯≤ªπªªÚ’ﬂ ‰»Î¡˜Ωÿ÷πµƒŒ Ã‚
-    if ('\0' == *pos)
-    {
-        //  »Áπ˚ «ª∫≥Â«¯Ω·Œ≤±Íº«
-        if (pos == cache->limit)
-        {
-            //  ‘ÿ»Î∏¸∂‡ ˝æ›
+    //  Â¶ÇÊûúÈÅáÂà∞ÁöÑÊòØ \0 Á¨¶Âè∑ÔºåÈÇ£‰πàÊàë‰ª¨ÂèØ‰ª•ËÆ§‰∏∫ÂèØËÉΩÈÅáÂà∞‰∫ÜÁºìÂÜ≤Âå∫‰∏çÂ§üÊàñËÄÖËæìÂÖ•ÊµÅÊà™Ê≠¢ÁöÑÈóÆÈ¢ò
+    if ('\0' == *pos) {
+        //  Â¶ÇÊûúÊòØÁºìÂÜ≤Âå∫ÁªìÂ∞æÊ†áËÆ∞
+        if (pos == cache->limit) {
+            //  ËΩΩÂÖ•Êõ¥Â§öÊï∞ÊçÆ
             pos = p_cache_read_more(cache, pos);
 
-            //  »Áπ˚‘ÿ»Î ˝æ›÷Æ∫Û£¨»‘»ª «ª∫≥Â«¯Ω·Œ≤£¨Àµ√˜“—æ≠ ˝æ›»´≤ø¥¶¿ÌÕÍ±œ¡À
-            if (pos == cache->limit)
-            {
+            //  Â¶ÇÊûúËΩΩÂÖ•Êï∞ÊçÆ‰πãÂêéÔºå‰ªçÁÑ∂ÊòØÁºìÂÜ≤Âå∫ÁªìÂ∞æÔºåËØ¥ÊòéÂ∑≤ÁªèÊï∞ÊçÆÂÖ®ÈÉ®Â§ÑÁêÜÂÆåÊØï‰∫Ü
+            if (pos == cache->limit) {
                 return pos;
             }
 
-            //  »Áπ˚ª∫≥Â«¯“—æ≠±ª–¬ ˝æ›ÃÓ≥‰¡À£¨ƒ«√¥ºÃ–¯«∞√Êµƒ¥¶¿Ì
+            //  Â¶ÇÊûúÁºìÂÜ≤Âå∫Â∑≤ÁªèË¢´Êñ∞Êï∞ÊçÆÂ°´ÂÖÖ‰∫ÜÔºåÈÇ£‰πàÁªßÁª≠ÂâçÈù¢ÁöÑÂ§ÑÁêÜ
             goto retry;
         }
     }
 
-    //  µΩ’‚¿Ôø…“‘»∑–≈“—æ≠ cache->pos “ª∂®≤ª «ø’∞◊¡À  
+    //  Âà∞ËøôÈáåÂèØ‰ª•Á°Æ‰ø°Â∑≤Áªè cache->pos ‰∏ÄÂÆö‰∏çÊòØÁ©∫ÁôΩ‰∫Ü
     return cache->pos = pos;
 }
-
-
-
 
 static inline char* p_accept_comment(struct cache_t* cache, char* pos)
 {
     cache->pos = pos + 1;
 
 retry:
-    //  ◊¢ Õø…ƒ‹ª·“ÚŒ™ ‰»Î¡˜Ω· ¯ªÚ’ﬂ∂¡µΩŒƒº˛Œ≤∂¯Ω· ¯
-    while (!((P_NEWLINE|P_EOS)&cm[*pos]))
-    {
+    //  Ê≥®ÈáäÂèØËÉΩ‰ºöÂõ†‰∏∫ËæìÂÖ•ÊµÅÁªìÊùüÊàñËÄÖËØªÂà∞Êñá‰ª∂Â∞æËÄåÁªìÊùü
+    while (!((P_NEWLINE | P_EOS) & cm[*pos])) {
         pos++;
     }
 
-    //  »Áπ˚”ˆµΩªª––,ƒ«√¥◊¢ ÕæÕΩ· ¯¡À
-    if (P_NEWLINE&cm[*pos])
-    {
+    //  Â¶ÇÊûúÈÅáÂà∞Êç¢Ë°å,ÈÇ£‰πàÊ≥®ÈáäÂ∞±ÁªìÊùü‰∫Ü
+    if (P_NEWLINE & cm[*pos]) {
         return cache->pos = pos;
     }
 
-    if (P_EOS&cm[*pos])
-    {
-        //  ‘ÿ»Î∏¸∂‡ ˝æ›
+    if (P_EOS & cm[*pos]) {
+        //  ËΩΩÂÖ•Êõ¥Â§öÊï∞ÊçÆ
         pos = p_cache_read_more(cache, pos);
 
-        //  »Áπ˚‘ÿ»Î ˝æ›÷Æ∫Û£¨»‘»ª «ª∫≥Â«¯Ω·Œ≤£¨Àµ√˜“—æ≠ ˝æ›»´≤ø¥¶¿ÌÕÍ±œ¡À
-        if (pos == cache->limit)
-        {
+        //  Â¶ÇÊûúËΩΩÂÖ•Êï∞ÊçÆ‰πãÂêéÔºå‰ªçÁÑ∂ÊòØÁºìÂÜ≤Âå∫ÁªìÂ∞æÔºåËØ¥ÊòéÂ∑≤ÁªèÊï∞ÊçÆÂÖ®ÈÉ®Â§ÑÁêÜÂÆåÊØï‰∫Ü
+        if (pos == cache->limit) {
             return cache->pos;
         }
 
-        //  »Áπ˚ª∫≥Â«¯“—æ≠±ª–¬ ˝æ›ÃÓ≥‰¡À£¨ƒ«√¥ºÃ–¯«∞√Êµƒ¥¶¿Ì
+        //  Â¶ÇÊûúÁºìÂÜ≤Âå∫Â∑≤ÁªèË¢´Êñ∞Êï∞ÊçÆÂ°´ÂÖÖ‰∫ÜÔºåÈÇ£‰πàÁªßÁª≠ÂâçÈù¢ÁöÑÂ§ÑÁêÜ
         goto retry;
     }
 
     return cache->pos = pos;
 }
 
-
-
-
 static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, struct buf_t** buf)
 {
     //  uxxxx
     cache->pos = pos;
 
-    pos++;  //  ≥‘µÙ◊÷∑˚ u
+    pos++; //  ÂêÉÊéâÂ≠óÁ¨¶ u
 
     register char* end = cache->pos + 4;
 
-    //  »Áπ˚Ã·«∞Ω· ¯
-    if ((cache->pos + 4) > cache->limit)
-    {
-        p_cache_read_more(cache, cache->pos);    //  »∑±£÷¡…Ÿ”–4∏ˆ◊÷∑˚
-        if ((cache->pos + 4) > cache->limit)
-        {
-            //  “™±®¥Ì¬? œ»±£÷§æ°¡ø∂¡»°
+    //  Â¶ÇÊûúÊèêÂâçÁªìÊùü
+    if ((cache->pos + 4) > cache->limit) {
+        p_cache_read_more(cache, cache->pos); //  Á°Æ‰øùËá≥Â∞ëÊúâ4‰∏™Â≠óÁ¨¶
+        if ((cache->pos + 4) > cache->limit) {
+            //  Ë¶ÅÊä•ÈîôÂêó? ÂÖà‰øùËØÅÂ∞ΩÈáèËØªÂèñ
             end = cache->limit;
         }
     }
 
-
-    //  ∂‘ ˝æ›Ω¯––∏Ò Ω◊™ªª
+    //  ÂØπÊï∞ÊçÆËøõË°åÊ†ºÂºèËΩ¨Êç¢
     wchar_t c = 0;
-    for (register char* p = cache->pos; p != end; p++)
-    {
-        switch (*p)
-        {
+    for (register char* p = cache->pos; p != end; p++) {
+        switch (*p) {
         case '0':
         case '1':
         case '2':
@@ -417,84 +368,72 @@ static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, st
             c = (c << 4) | (*p - 'A' + 10);
             continue;
         default:
-            //  ”ˆµΩ∑«‘§∆⁄µƒ◊÷∑˚£¨Ã·«∞÷’÷π
+            //  ÈÅáÂà∞ÈùûÈ¢ÑÊúüÁöÑÂ≠óÁ¨¶ÔºåÊèêÂâçÁªàÊ≠¢
             *buf = buf_append_wchar(*buf, c);
             cache->pos = p;
             break;
         }
     }
 
-    //  ¥¶¿ÌÕÍ±œ
+    //  Â§ÑÁêÜÂÆåÊØï
     *buf = buf_append_wchar(*buf, c);
     return cache->pos = end;
 }
-
-
-
 
 static inline char* p_accept_escape(struct cache_t* cache, char* pos, struct buf_t** buf)
 {
     cache->pos = pos;
 
-    pos++;  //  ≥‘µÙ `\\` 
+    pos++; //  ÂêÉÊéâ `\\`
 
 retry:
-    switch (*pos)
-    {
+    switch (*pos) {
     case '\0':
-        //  »Áπ˚ µº  «ª∫≥Â«¯Ω· ¯±Í÷æ
-        if (pos == cache->limit)
-        {
+        //  Â¶ÇÊûúÂÆûÈôÖÊòØÁºìÂÜ≤Âå∫ÁªìÊùüÊ†áÂøó
+        if (pos == cache->limit) {
             pos = p_cache_read_more(cache, pos);
-            if (pos == cache->limit)
-            {
+            if (pos == cache->limit) {
                 return pos;
             }
 
             goto retry;
         }
 
-        //  –±∏‹∫Û√Ê∏˙◊≈“ª∏ˆ”––ßµƒ \0£¨’‚÷÷«Èøˆ∆‰ µ≤ª”¶∏√¥Ê‘⁄£¨µ´ Java πÊ∑∂≤¢√ª”–Àµ√˜’‚÷÷«Èøˆ”¶∏√‘ı√¥¥¶¿Ì
+        //  ÊñúÊù†ÂêéÈù¢Ë∑üÁùÄ‰∏Ä‰∏™ÊúâÊïàÁöÑ \0ÔºåËøôÁßçÊÉÖÂÜµÂÖ∂ÂÆû‰∏çÂ∫îËØ•Â≠òÂú®Ôºå‰ΩÜ Java ËßÑËåÉÂπ∂Ê≤°ÊúâËØ¥ÊòéËøôÁßçÊÉÖÂÜµÂ∫îËØ•ÊÄé‰πàÂ§ÑÁêÜ
         *buf = buf_append_char(*buf, '\0');
         pos++;
         goto retry;
-    case 'n':   //  \n
+    case 'n': //  \n
         *buf = buf_append_char(*buf, '\n');
         return cache->pos = pos + 1;
         ;
-    case 't':   //  \t
+    case 't': //  \t
         *buf = buf_append_char(*buf, '\t');
         return cache->pos = pos + 1;
-    case 'r':   //  \t
+    case 'r': //  \t
         *buf = buf_append_char(*buf, '\t');
         return cache->pos = pos + 1;
-    case 'u':   //  unicode◊™“Â
+    case 'u': //  unicodeËΩ¨‰πâ
         return p_accept_unicode_escape(cache, pos, buf);
     case '\n':
         return p_skip_space(cache, pos + 1);
-    default:    // *pos
+    default: // *pos
         *buf = buf_append_char(*buf, *pos);
         return cache->pos = pos + 1;
     }
 }
 
-
-
-
 char* p_accept_key(struct cache_t* cache)
 {
     register char* pos = cache->pos;
 
-    while (1)
-    {
-        while (!((P_SPACE|P_NEWLINE|P_ESCAPE|P_EOS|P_SPLITER)&cm[*pos]))
-        {
+    while (1) {
+        while (!((P_SPACE | P_NEWLINE | P_ESCAPE | P_EOS | P_SPLITER) & cm[*pos])) {
             pos++;
         }
 
         cache->key = buf_append_string(cache->key, cache->pos, pos);
-        switch (cm[*pos])
-        {
+        switch (cm[*pos]) {
         case P_SPACE:
         case P_SPLITER:
             return cache->pos = pos;
@@ -504,89 +443,76 @@ char* p_accept_key(struct cache_t* cache)
             pos = p_accept_escape(cache, pos, &(cache->key));
             continue;
         case P_EOS:
-            //  »Áπ˚ µº  «ª∫≥Â«¯Ω· ¯±Í÷æ
-            if (pos == cache->limit)
-            {
-                //  ’‚¿Ô–Ë“™Ω´◊÷∑˚¥Æ¥ÊµΩcache¿Ô√Ê»•
+            //  Â¶ÇÊûúÂÆûÈôÖÊòØÁºìÂÜ≤Âå∫ÁªìÊùüÊ†áÂøó
+            if (pos == cache->limit) {
+                //  ËøôÈáåÈúÄË¶ÅÂ∞ÜÂ≠óÁ¨¶‰∏≤Â≠òÂà∞cacheÈáåÈù¢Âéª
                 pos = p_cache_read_more(cache, pos);
-                if (pos == cache->limit)
-                {
-                    //  …˙≥…key£¨≤¢œÚpropsÃÌº”key
+                if (pos == cache->limit) {
+                    //  ÁîüÊàêkeyÔºåÂπ∂ÂêëpropsÊ∑ªÂä†key
                     return cache->pos = pos;
                 }
 
                 continue;
             }
 
-            //  ’Ê”ˆµΩ \0  µº “—æ≠Œﬁ∑®ºÃ–¯œ¬»•¡À
+            //  ÁúüÈÅáÂà∞ \0 ÂÆûÈôÖÂ∑≤ÁªèÊó†Ê≥ïÁªßÁª≠‰∏ãÂéª‰∫Ü
             cache->key = buf_append_char(cache->key, '\0');
             pos++;
             continue;
         default:
-            //  ≤ª”¶∏√◊ﬂµΩ’‚¿Ô¿¥
+            //  ‰∏çÂ∫îËØ•Ëµ∞Âà∞ËøôÈáåÊù•
             ASSERT(0);
         }
 
-        //  ≤ª”¶∏√◊ﬂµΩ’‚¿Ô¿¥
+        //  ‰∏çÂ∫îËØ•Ëµ∞Âà∞ËøôÈáåÊù•
         ASSERT(0);
     }
 }
-
-
-
 
 static inline char* p_accept_value(struct cache_t* cache, struct buf_t** buf)
 {
     register char* pos = cache->pos;
 
-    while (1)
-    {
-        while (!((P_NEWLINE|P_ESCAPE|P_EOS)&cm[*pos]))
-        {
+    while (1) {
+        while (!((P_NEWLINE | P_ESCAPE | P_EOS) & cm[*pos])) {
             pos++;
         }
 
         *buf = buf_append_string(*buf, cache->pos, pos);
 
-        switch (cm[*pos])
-        {
+        switch (cm[*pos]) {
         case P_NEWLINE:
-            //  …˙≥…val£¨≤¢œÚpropsÃÌº”key
+            //  ÁîüÊàêvalÔºåÂπ∂ÂêëpropsÊ∑ªÂä†key
             return cache->pos = pos;
         case P_ESCAPE:
             pos = p_accept_escape(cache, pos, &(cache->val));
             continue;
         case P_EOS:
-            //  »Áπ˚ µº  «ª∫≥Â«¯Ω· ¯±Í÷æ
-            if (pos == cache->limit)
-            {
-                //  TODO    ¥À ±“™Ω´◊÷∑˚¥Æ¥Ê∆¿¥
+            //  Â¶ÇÊûúÂÆûÈôÖÊòØÁºìÂÜ≤Âå∫ÁªìÊùüÊ†áÂøó
+            if (pos == cache->limit) {
+                //  TODO    Ê≠§Êó∂Ë¶ÅÂ∞ÜÂ≠óÁ¨¶‰∏≤Â≠òËµ∑Êù•
                 pos = p_cache_read_more(cache, pos);
-                if (pos == cache->limit)
-                {
-                    //  …˙≥…key£¨≤¢œÚpropsÃÌº”key
+                if (pos == cache->limit) {
+                    //  ÁîüÊàêkeyÔºåÂπ∂ÂêëpropsÊ∑ªÂä†key
                     return pos;
                 }
 
                 continue;
             }
 
-            //  ’Ê”ˆµΩ \0  µº “—æ≠Œﬁ∑®ºÃ–¯œ¬»•¡À
+            //  ÁúüÈÅáÂà∞ \0 ÂÆûÈôÖÂ∑≤ÁªèÊó†Ê≥ïÁªßÁª≠‰∏ãÂéª‰∫Ü
             *buf = buf_append_char(*buf, '\0');
             pos++;
             continue;
         default:
-            //  ≤ª”¶∏√◊ﬂµΩ’‚¿Ô¿¥
+            //  ‰∏çÂ∫îËØ•Ëµ∞Âà∞ËøôÈáåÊù•
             ASSERT(0);
         }
 
-        //  ≤ª”¶∏√◊ﬂµΩ’‚¿Ô¿¥
+        //  ‰∏çÂ∫îËØ•Ëµ∞Âà∞ËøôÈáåÊù•
         ASSERT(0);
     }
 }
-
-
-
 
 static inline char* p_accept_spliter(struct cache_t* cache)
 {
@@ -595,60 +521,48 @@ static inline char* p_accept_spliter(struct cache_t* cache)
 retry:
     pos = p_skip_space(cache, pos);
 
-    if (P_EOS&cm[*pos])
-    {
-        //  »Áπ˚ µº  «ª∫≥Â«¯Ω· ¯±Í÷æ
-        if (pos == cache->limit)
-        {
+    if (P_EOS & cm[*pos]) {
+        //  Â¶ÇÊûúÂÆûÈôÖÊòØÁºìÂÜ≤Âå∫ÁªìÊùüÊ†áÂøó
+        if (pos == cache->limit) {
             pos = p_cache_read_more(cache, pos);
-            if (pos == cache->limit)
-            {
+            if (pos == cache->limit) {
                 return pos;
             }
 
             goto retry;
         }
 
-        //  ’Ê”ˆµΩ \0  µº “—æ≠Œﬁ∑®ºÃ–¯œ¬»•¡À
+        //  ÁúüÈÅáÂà∞ \0 ÂÆûÈôÖÂ∑≤ÁªèÊó†Ê≥ïÁªßÁª≠‰∏ãÂéª‰∫Ü
         return cache->pos = pos;
     }
 
-    if (P_SPLITER&cm[*pos])
-    {
+    if (P_SPLITER & cm[*pos]) {
         return p_skip_space(cache, pos + 1);
     }
 
-    if (P_NEWLINE&cm[*pos])
-    {
+    if (P_NEWLINE & cm[*pos]) {
         return cache->pos = pos;
     }
 
     return cache->pos = pos;
 }
 
-
-
-
-static inline int   properties_load_impl(struct cache_t* cache, void* handler_context, PROPERTYS_HANDLER handler)
+static inline int properties_load_impl(struct cache_t* cache, void* handler_context, PROPERTYS_HANDLER handler)
 {
-    register char*  pos   = p_cache_read_more(cache, cache->pos);
-    while (1)
-    {
-        if (P_SPACE&cm[*pos])
-        {
+    register char* pos = p_cache_read_more(cache, cache->pos);
+    while (1) {
+        if (P_SPACE & cm[*pos]) {
             pos = p_skip_space(cache, pos);
         }
 
-        //  »Áπ˚ «◊¢ Õ––£¨Ã¯π˝
-        if (P_COMMENT&cm[*pos])
-        {
+        //  Â¶ÇÊûúÊòØÊ≥®ÈáäË°åÔºåË∑≥Ëøá
+        if (P_COMMENT & cm[*pos]) {
             pos = p_accept_comment(cache, pos);
             continue;
         }
 
-        //  »Áπ˚ «ø’––£¨–ﬁ∏ƒ––∫≈∫Õ––∆ º
-        if (P_NEWLINE&cm[*pos])
-        {
+        //  Â¶ÇÊûúÊòØÁ©∫Ë°åÔºå‰øÆÊîπË°åÂè∑ÂíåË°åËµ∑Âßã
+        if (P_NEWLINE & cm[*pos]) {
             pos++;
             cache->pos = pos;
             cache->line = cache->pos;
@@ -657,76 +571,66 @@ static inline int   properties_load_impl(struct cache_t* cache, void* handler_co
             continue;
         }
 
-        //  »Áπ˚”ˆµΩ\0∑˚∫≈£¨»Áπ˚ « ‰»Î¡˜Ω·Œ≤£¨ƒ«√¥ ∂±Ω· ¯
-        if (P_EOS&cm[*pos])
-        {
-            //  »Áπ˚ «––Œ≤£¨Àµ√˜“—æ≠Œﬁ∑®‘Ÿ‘ÿ»Î∏¸∂‡ ˝æ›£¨ ∂±Ω· ¯
-            if (pos == cache->limit)
-            {
+        //  Â¶ÇÊûúÈÅáÂà∞\0Á¨¶Âè∑ÔºåÂ¶ÇÊûúÊòØËæìÂÖ•ÊµÅÁªìÂ∞æÔºåÈÇ£‰πàËØÜÂà´ÁªìÊùü
+        if (P_EOS & cm[*pos]) {
+            //  Â¶ÇÊûúÊòØË°åÂ∞æÔºåËØ¥ÊòéÂ∑≤ÁªèÊó†Ê≥ïÂÜçËΩΩÂÖ•Êõ¥Â§öÊï∞ÊçÆÔºåËØÜÂà´ÁªìÊùü
+            if (pos == cache->limit) {
                 return 0;
             }
         }
 
-        //  ÷ÿ÷√ key ∫Õ val
+        //  ÈáçÁΩÆ key Âíå val
         buf_reset(cache->key);
         buf_reset(cache->val);
 
-        //   ’»°“ª∏ˆ key
+        //  Êî∂Âèñ‰∏Ä‰∏™ key
         pos = p_accept_key(cache);
 
-        //   ’»°∑÷∏Ù∑˚∫≈
+        //  Êî∂ÂèñÂàÜÈöîÁ¨¶Âè∑
         pos = p_accept_spliter(cache);
 
-        //  »Áπ˚√ª”–∫Û–¯ƒ⁄»›£¨ƒ«√¥≈–∂®∏√œÓ÷ª”– key
-        if ((P_NEWLINE|P_EOS)&cm[*pos])
-        {
+        //  Â¶ÇÊûúÊ≤°ÊúâÂêéÁª≠ÂÜÖÂÆπÔºåÈÇ£‰πàÂà§ÂÆöËØ•È°πÂè™Êúâ key
+        if ((P_NEWLINE | P_EOS) & cm[*pos]) {
             cache->key = buf_append_char(cache->key, '\0');
             cache->val = buf_append_char(cache->val, '\0');
-            if (0 != handler(handler_context, cache->key->data, cache->key->len, cache->val->data, cache->val->len))
-            {
+            if (0 != handler(handler_context, cache->key->data, cache->key->len, cache->val->data, cache->val->len)) {
                 return 0;
             }
 
             continue;
         }
 
-        //   ’»° val
+        //  Êî∂Âèñ val
         pos = p_accept_value(cache, &(cache->val));
 
         cache->key = buf_append_char(cache->key, '\0');
         cache->val = buf_append_char(cache->val, '\0');
-        if (0 != handler(handler_context, cache->key->data, cache->key->len - 1, cache->val->data, cache->val->len - 1))
-        {
+        if (0 != handler(handler_context, cache->key->data, cache->key->len - 1, cache->val->data, cache->val->len - 1)) {
             return 0;
         }
     }
 }
 
-
-
-
-int     properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler)
+int properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler)
 {
     struct cache_t cache;
-    cache.source_context    =   source_context;
-    cache.source_read       =   source_read;
-    cache.cache     =   (char*)alloca(CACHE_SIZE_DEF + 1);
-    cache.tail      =   cache.cache + CACHE_SIZE_DEF;
-    cache.limit     =   cache.cache;
-    cache.lino      =   0;
-    cache.line      =   cache.cache;
-    cache.pos       =   cache.limit;
-    cache.limit[0]  =   '\0';
+    cache.source_context = source_context;
+    cache.source_read = source_read;
+    cache.cache = (char*)alloca(CACHE_SIZE_DEF + 1);
+    cache.tail = cache.cache + CACHE_SIZE_DEF;
+    cache.limit = cache.cache;
+    cache.lino = 0;
+    cache.line = cache.cache;
+    cache.pos = cache.limit;
+    cache.limit[0] = '\0';
 
-    cache.key   = buf_new(0);
-    if (NULL == cache.key)
-    {
+    cache.key = buf_new(0);
+    if (NULL == cache.key) {
         return -1;
     }
 
-    cache.val   = buf_new(0);
-    if (NULL == cache.val)
-    {
+    cache.val = buf_new(0);
+    if (NULL == cache.val) {
         buf_del(cache.key);
         return -1;
     }
