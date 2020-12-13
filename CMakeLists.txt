@@ -10,9 +10,6 @@ project(libproperties VERSION ${MY_VERSION} LANGUAGES C)
 #   Define GNU standard installation directories
 include(GNUInstallDirs)
 
-#   We need -fsigned-char for ARM compiler
-set(CMAKE_C_FLAGS "-fsigned-char ${CMAKE_C_FLAGS}")
-
 #   Define the target
 add_library(properties buf.c properties.c)
 set_target_properties(properties PROPERTIES
@@ -29,6 +26,11 @@ target_include_directories(properties PUBLIC
 if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(properties PUBLIC LIBPROPERTIES_STATIC)
 endif()
+target_compile_options(properties PRIVATE
+    $<$<NOT:$<STREQUAL:$<C_COMPILER_ID>,MSVC>>:
+        #   We need -fsigned-char for ARM compiler
+        -fsigned-char
+    >)
 
 #   Install the library + header + cmake config file
 option(LIBPROPERTIES_INSTALL "Install libproperties" ON)
