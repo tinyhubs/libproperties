@@ -86,3 +86,8 @@ obj
 *.sln
 *.user
 *.vcxproj
+
+*.tar
+*.tar.gz
+*.zip
+
