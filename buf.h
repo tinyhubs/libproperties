@@ -1,7 +1,7 @@
 #ifndef __buf_H_
 #define __buf_H_
 
-
+#include <stddef.h>
 
 
 #ifndef EXTERN
