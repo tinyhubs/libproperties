@@ -20,7 +20,7 @@ You need just two file below to your project:
 The kernel function of this library is `properties_parse`
 
 ```C
-EXTERN  int     properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler);
+int     properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, void* handler_context, PROPERTYS_HANDLER handler);
 ```
 
 It need four parameters:
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 
 *Windows*
 
-   * [premake](https://premake.github.io/)
+   * [cmake](https://cmake.org/)
    * [MSYS2](http://www.msys2.org/)
    * Visual Studio 2010 or later
 

@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     FILE* file = fopen(argv[1], "r");
     if (NULL == file)
     {
-        return  NULL;
+        return  2;
     }
 
     int ret = properties_parse(file, properties_source_file_read, NULL, test_handler);
