@@ -67,7 +67,7 @@ function    generate_expect_files()
 
 
 
-function    run_teatcases()
+function    run_testcases()
 {
     local exe_tool=${TESTDIR}/libproperties_test
     if [ "x${OS}" == "xWindows_NT" ]; then
@@ -154,7 +154,7 @@ function main()
     echo    "----"
     echo    "Run testcases ..."
     echo    ""
-    run_teatcases
+    run_testcases
     RESULT=$?
     echo    ""
     if [ $RESULT -ne 0 ]; then
