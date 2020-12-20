@@ -72,12 +72,40 @@ function do_package()
 
 function do_test()
 {
-    echo    "TODO do_test"
+    rm -rf "${SELFDIR}/build"
+
+    mkdir -p "${SELFDIR}/build"
+    cd "${SELFDIR}/build" && \
+    cmake ../             && \
+    make  clean           && \
+    make                  && \
+    make  test
+    RESULT=$?
+    if [[ ${RESULT} -ne 0 ]]; then
+        echo   "Error: Compile project '${PROJECT_NAME}' with mode '$2' failed(${RESULT})"
+        return 1
+    fi
+
+    echo   "Test project '${PROJECT_NAME}' with mode '$2' success"
+    return 0
 }
 
 function do_format()
 {
-    echo    "TODO do_format"
+    local failcount=0
+    local files=$(find . -name "*.[ch]" | grep -v "build/" | grep -v "pack/" | sed "s#./##g")
+    for f in ${files} ; do
+        clang-format -style=file -i "${f}"
+        RESULT=$?
+        if [[ ${RESULT} -ne 0 ]]; then
+            echo    "[FAIL] ${f}"
+            ((failcount = failcount + 1))
+        else
+            echo    "[ OK ] ${f}"
+        fi
+    done
+
+    return  ${failcount}
 }
 
 function do_encode()
@@ -87,7 +115,8 @@ function do_encode()
 
 function do_clean()
 {
-    echo    "TODO do_clean"
+    rm  -rf "${SELFDIR}/build/"
+    return  $?
 }
 
 function main()
