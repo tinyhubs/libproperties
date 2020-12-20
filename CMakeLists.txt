@@ -17,6 +17,8 @@ project(libproperties VERSION ${LIBPROPERTIES_VERSION} LANGUAGES C)
 #   Define GNU standard installation directories
 include(GNUInstallDirs)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
+
 #   Define the target
 add_library(properties buf.c properties.c)
 set_target_properties(properties PROPERTIES
