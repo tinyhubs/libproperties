@@ -57,7 +57,11 @@ int is_file_equal(const char* resultFileC, const char* resultFileJ)
         lino++;
         char* lineC = fgets(bufC, bufSizeMax, fileC);
         char* lineJ = fgets(bufJ, bufSizeMax, fileJ);
-        ASSERT(((NULL != lineC) && (NULL != lineJ)) || ((NULL == lineC) && (NULL == lineJ)));
+
+        if ((NULL == lineC) || (NULL == lineJ)) {
+            break;
+        }
+        ASSERT((NULL != lineC) && (NULL != lineJ));
         size_t lenC = strlen(lineC);
         size_t lenJ = strlen(lineJ);
         printf("C %d [%s]\n", lino, lineC);
@@ -87,7 +91,7 @@ int main(int argc, char* argv[])
 
     int ret = generate_output(argv[1], argv[2]);
     ASSERT(0 == ret);
-    ASSERT(is_file_equal(argv[2], argv[3]));
+    ASSERT(0 == is_file_equal(argv[2], argv[3]));
 
     return 0;
 }
