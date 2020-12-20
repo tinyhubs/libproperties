@@ -63,11 +63,23 @@ endif()
 
 #   Build + add the test target
 if(LIBPROPERTIES_TEST)
+    #   Add executable target for test
     add_executable(libproperties_test properties_test.c)
     target_link_libraries(libproperties_test PRIVATE properties)
 
+    #   Enable testing
     enable_testing()
 
-    add_test(test_1 libproperties_test "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties" "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties.c.output" "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties.j.expect")
-    add_test(test_2 libproperties_test "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties" "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties.c.expect" "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties.j.expect")
+    #   Defined a function to add new test case
+    function(libproproperties_add_test casefile)
+        get_filename_component(casename "${casefile}" NAME)
+        add_test("${casename}" "libproperties_test" "${casefile}" "${casename}.c.output" "${casefile}.j.expect")
+        set_tests_properties(${casename} PROPERTIES TIMEOUT 5)
+    endfunction()
+
+    #   Scan file under test and add to ctest
+    file(GLOB ALL_TEST_FILES ${CMAKE_CURRENT_SOURCE_DIR}/test/*.properties)
+    foreach(casename ${ALL_TEST_FILES})
+        libproproperties_add_test("${casename}")
+    endforeach()
 endif()
