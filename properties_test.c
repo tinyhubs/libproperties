@@ -34,6 +34,7 @@ int generate_output(const char* fileNameC, const char* resultFileC)
 
     int ret = properties_parse(file, properties_source_file_read, resultC, test_handler);
     fclose(file);
+    fclose(resultC);
 
     return ret;
 }
@@ -51,19 +52,25 @@ int is_file_equal(const char* resultFileC, const char* resultFileJ)
     ASSERT(NULL != bufC);
     ASSERT(NULL != bufJ);
 
-    while (feof(fileC) || feof(fileJ)) {
-        char* lineC = fgets(bufC, sizeof(bufC), fileC);
-        char* lineJ = fgets(bufJ, sizeof(bufJ), fileJ);
-        ASSERT(NULL != lineC);
-        ASSERT(NULL != lineJ);
-        printf("C[%s]\n", lineC);
-        printf("L[%s]\n", lineJ);
+    int lino = 0;
+    while (!feof(fileC) && !feof(fileJ)) {
+        lino++;
+        char* lineC = fgets(bufC, bufSizeMax, fileC);
+        char* lineJ = fgets(bufJ, bufSizeMax, fileJ);
+        ASSERT(((NULL != lineC) && (NULL != lineJ)) || ((NULL == lineC) && (NULL == lineJ)));
+        size_t lenC = strlen(lineC);
+        size_t lenJ = strlen(lineJ);
+        printf("C %d [%s]\n", lino, lineC);
+        printf("L %d [%s]\n", lino, lineJ);
+        ASSERT(lenC == lenJ);
         int lineResult = strncmp(lineC, lineJ, bufSizeMax);
         ASSERT(lineResult == 0);
     }
 
-    ASSERT(feof(fileC));
-    ASSERT(feof(fileJ));
+    int C = feof(fileC);
+    int J = feof(fileJ);
+    ASSERT(C);
+    ASSERT(J);
 
     free(bufC);
     free(bufJ);
