@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.15)
 
-#   Read version information from local file
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" MY_VERSION)
-string(STRIP "${MY_VERSION}" MY_VERSION)
 
-#   Define the project
-project(libproperties VERSION ${MY_VERSION} LANGUAGES C)
+#   Defined all of the options
+option(BUILD_SHARED_LIBS     "Build the shared lib" ON)
+option(LIBPROPERTIES_INSTALL "Install libproperties" ON)
+option(LIBPROPERTIES_TEST    "Build the libproperties tests" ON)
+
+
+#   Read version information from local file
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" LIBPROPERTIES_VERSION)
+string(STRIP "${LIBPROPERTIES_VERSION}" LIBPROPERTIES_VERSION)
+
+#   Define the project with version
+project(libproperties VERSION ${LIBPROPERTIES_VERSION} LANGUAGES C)
 
 #   Define GNU standard installation directories
 include(GNUInstallDirs)
@@ -23,6 +30,8 @@ target_include_directories(properties PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
+#   Decide build as shared lib or not
 if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(properties PUBLIC LIBPROPERTIES_STATIC)
 endif()
@@ -35,7 +44,6 @@ target_compile_options(properties PRIVATE
     >)
 
 #   Install the library + header + cmake config file
-option(LIBPROPERTIES_INSTALL "Install libproperties" ON)
 if(LIBPROPERTIES_INSTALL)
     install(TARGETS properties EXPORT properties
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -52,25 +60,12 @@ if(LIBPROPERTIES_INSTALL)
 endif()
 
 #   Build + add the test target
-option(LIBPROPERTIES_TEST "Build the libproperties tests" ON)
 if(LIBPROPERTIES_TEST)
     add_executable(libproperties_test properties_test.c)
     target_link_libraries(libproperties_test PRIVATE properties)
 
     enable_testing()
 
-    #function(libproproperties_add_test_compare NAME PROPERTIES)
-    #    add_test(NAME ${NAME}
-    #        COMMAND "${CMAKE_COMMAND}"
-    #            "-DJava_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}"
-    #            "-DLIBPROPERTIES_JAR=${CMAKE_CURRENT_BINARY_DIR}/libproperties_test.jar"
-    #            "-DLIBPROPERTIES_TEST=$<TARGET_FILE:libproperties_test>"
-    #            "-DPROPERTIES=${PROPERTIES}"
-    #            -P "${CMAKE_CURRENT_SOURCE_DIR}/test/compare_java.cmake"
-    #    )
-    #    set_tests_properties(${NAME} PROPERTIES TIMEOUT 5)
-    #endfunction()
-
-    libproproperties_add_test_compare(libproperties_test_1 "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties")
-    libproproperties_add_test_compare(libproperties_test_2 "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties")
+    add_test(test_1 libproperties_test "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties" "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties.c.output" "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties.j.expect")
+    add_test(test_2 libproperties_test "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties" "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties.c.expect" "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties.j.expect")
 endif()
