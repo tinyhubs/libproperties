@@ -14,6 +14,8 @@ string(STRIP "${LIBPROPERTIES_VERSION}" LIBPROPERTIES_VERSION)
 #   Define the project with version
 project(libproperties VERSION ${LIBPROPERTIES_VERSION} LANGUAGES C)
 
+#<CONAN-PLACEHOLD>#
+
 #   Define GNU standard installation directories
 include(GNUInstallDirs)
 
