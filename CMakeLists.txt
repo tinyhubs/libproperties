@@ -26,6 +26,8 @@ target_include_directories(properties PUBLIC
 if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(properties PUBLIC LIBPROPERTIES_STATIC)
 endif()
+
+# FACK CMAKE: What is this shit like syntax!!
 target_compile_options(properties PRIVATE
     $<$<NOT:$<STREQUAL:$<C_COMPILER_ID>,MSVC>>:
         #   We need -fsigned-char for ARM compiler
@@ -52,30 +54,22 @@ endif()
 #   Build + add the test target
 option(LIBPROPERTIES_TEST "Build the libproperties tests" ON)
 if(LIBPROPERTIES_TEST)
-    find_package(Java REQUIRED COMPONENTS Runtime Development)
-    include(UseJava)
-
-    add_jar(libproperties_test_jar test/Main.java
-        OUTPUT_NAME libproperties_test
-        ENTRY_POINT Main
-    )
-
     add_executable(libproperties_test properties_test.c)
     target_link_libraries(libproperties_test PRIVATE properties)
 
     enable_testing()
 
-    function(libproproperties_add_test_compare NAME PROPERTIES)
-        add_test(NAME ${NAME}
-            COMMAND "${CMAKE_COMMAND}"
-                "-DJava_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}"
-                "-DLIBPROPERTIES_JAR=${CMAKE_CURRENT_BINARY_DIR}/libproperties_test.jar"
-                "-DLIBPROPERTIES_TEST=$<TARGET_FILE:libproperties_test>"
-                "-DPROPERTIES=${PROPERTIES}"
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/test/compare_java.cmake"
-        )
-        set_tests_properties(${NAME} PROPERTIES TIMEOUT 5)
-    endfunction()
+    #function(libproproperties_add_test_compare NAME PROPERTIES)
+    #    add_test(NAME ${NAME}
+    #        COMMAND "${CMAKE_COMMAND}"
+    #            "-DJava_JAVA_EXECUTABLE=${Java_JAVA_EXECUTABLE}"
+    #            "-DLIBPROPERTIES_JAR=${CMAKE_CURRENT_BINARY_DIR}/libproperties_test.jar"
+    #            "-DLIBPROPERTIES_TEST=$<TARGET_FILE:libproperties_test>"
+    #            "-DPROPERTIES=${PROPERTIES}"
+    #            -P "${CMAKE_CURRENT_SOURCE_DIR}/test/compare_java.cmake"
+    #    )
+    #    set_tests_properties(${NAME} PROPERTIES TIMEOUT 5)
+    #endfunction()
 
     libproproperties_add_test_compare(libproperties_test_1 "${CMAKE_CURRENT_SOURCE_DIR}/test/1.properties")
     libproproperties_add_test_compare(libproperties_test_2 "${CMAKE_CURRENT_SOURCE_DIR}/test/2.properties")
