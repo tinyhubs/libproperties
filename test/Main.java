@@ -40,7 +40,7 @@ public class Main
             System.out.print(item.key);
             System.out.print("]=[");
             System.out.print(item.val);
-            System.out.print("]\r\n");
+            System.out.print("]\n");
         }
     }
 }

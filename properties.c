@@ -18,16 +18,18 @@
 //  缺省 cache 的大小
 #define CACHE_SIZE_DEF (4 * 1024)
 
+typedef unsigned char puchar;
+
 struct cache_t {
     void* source_context;
     PROPERTIES_SOURCE_READ source_read;
-    char* cache; //  缓冲器的起始位置
-    char* tail; //  缓冲器的结束位置
+    puchar* cache; //  缓冲器的起始位置
+    puchar* tail; //  缓冲器的结束位置
 
     int lino; //  行号
-    char* line; //  行的起始位置
-    char* pos; //  当前已经识别到的位置
-    char* limit; //  cache 的结尾
+    puchar* line; //  行的起始位置
+    puchar* pos; //  当前已经识别到的位置
+    puchar* limit; //  cache 的结尾
 
     struct buf_t* key;
     struct buf_t* val;
@@ -223,7 +225,7 @@ EXTERN int properties_source_string_read(void* context, char* buf, int* size)
     return 0;
 }
 
-static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
+static inline puchar* p_cache_read_more(struct cache_t* cache, puchar* pos)
 {
     //  设置终止位置
     cache->pos = pos;
@@ -243,7 +245,7 @@ static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
 
     //  读取新数据填充缓冲区
     int remain_size = cache->tail - cache->limit;
-    int ret = cache->source_read(cache->source_context, cache->limit, &remain_size);
+    int ret = cache->source_read(cache->source_context, (char*)(cache->limit), &remain_size);
 
     //  文件已经结束或者文件读取已经出错了
     if (ret != 0) {
@@ -255,7 +257,7 @@ static inline char* p_cache_read_more(struct cache_t* cache, char* pos)
     return cache->pos;
 }
 
-static inline char* p_skip_space(struct cache_t* cache, char* pos)
+static inline puchar* p_skip_space(struct cache_t* cache, puchar* pos)
 {
     cache->pos = pos;
 
@@ -286,7 +288,7 @@ retry:
     return cache->pos = pos;
 }
 
-static inline char* p_accept_comment(struct cache_t* cache, char* pos)
+static inline puchar* p_accept_comment(struct cache_t* cache, puchar* pos)
 {
     cache->pos = pos + 1;
 
@@ -317,14 +319,14 @@ retry:
     return cache->pos = pos;
 }
 
-static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, struct buf_t** buf)
+static inline puchar* p_accept_unicode_escape(struct cache_t* cache, puchar* pos, struct buf_t** buf)
 {
     //  uxxxx
     cache->pos = pos;
 
     pos++; //  吃掉字符 u
 
-    register char* end = cache->pos + 4;
+    register puchar* end = cache->pos + 4;
 
     //  如果提前结束
     if ((cache->pos + 4) > cache->limit) {
@@ -337,7 +339,7 @@ static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, st
 
     //  对数据进行格式转换
     wchar_t c = 0;
-    for (register char* p = cache->pos; p != end; p++) {
+    for (register puchar* p = cache->pos; p != end; p++) {
         switch (*p) {
         case '0':
         case '1':
@@ -380,7 +382,7 @@ static inline char* p_accept_unicode_escape(struct cache_t* cache, char* pos, st
     return cache->pos = end;
 }
 
-static inline char* p_accept_escape(struct cache_t* cache, char* pos, struct buf_t** buf)
+static inline puchar* p_accept_escape(struct cache_t* cache, puchar* pos, struct buf_t** buf)
 {
     cache->pos = pos;
 
@@ -423,16 +425,16 @@ retry:
     }
 }
 
-char* p_accept_key(struct cache_t* cache)
+puchar* p_accept_key(struct cache_t* cache)
 {
-    register char* pos = cache->pos;
+    register puchar* pos = cache->pos;
 
     while (1) {
         while (!((P_SPACE | P_NEWLINE | P_ESCAPE | P_EOS | P_SPLITER) & cm[*pos])) {
             pos++;
         }
 
-        cache->key = buf_append_string(cache->key, cache->pos, pos);
+        cache->key = buf_append_string(cache->key, (char*)(cache->pos), (char*)(pos));
         switch (cm[*pos]) {
         case P_SPACE:
         case P_SPLITER:
@@ -469,16 +471,16 @@ char* p_accept_key(struct cache_t* cache)
     }
 }
 
-static inline char* p_accept_value(struct cache_t* cache, struct buf_t** buf)
+static inline puchar* p_accept_value(struct cache_t* cache, struct buf_t** buf)
 {
-    register char* pos = cache->pos;
+    register puchar* pos = cache->pos;
 
     while (1) {
         while (!((P_NEWLINE | P_ESCAPE | P_EOS) & cm[*pos])) {
             pos++;
         }
 
-        *buf = buf_append_string(*buf, cache->pos, pos);
+        *buf = buf_append_string(*buf, (char*)(cache->pos), (char*)(pos));
 
         switch (cm[*pos]) {
         case P_NEWLINE:
@@ -514,9 +516,9 @@ static inline char* p_accept_value(struct cache_t* cache, struct buf_t** buf)
     }
 }
 
-static inline char* p_accept_spliter(struct cache_t* cache)
+static inline puchar* p_accept_spliter(struct cache_t* cache)
 {
-    register char* pos = cache->pos;
+    register puchar* pos = cache->pos;
 
 retry:
     pos = p_skip_space(cache, pos);
@@ -549,7 +551,7 @@ retry:
 
 static inline int properties_load_impl(struct cache_t* cache, void* handler_context, PROPERTYS_HANDLER handler)
 {
-    register char* pos = p_cache_read_more(cache, cache->pos);
+    register puchar* pos = p_cache_read_more(cache, cache->pos);
     while (1) {
         if (P_SPACE & cm[*pos]) {
             pos = p_skip_space(cache, pos);
@@ -616,7 +618,7 @@ int properties_parse(void* source_context, PROPERTIES_SOURCE_READ source_read, v
     struct cache_t cache;
     cache.source_context = source_context;
     cache.source_read = source_read;
-    cache.cache = (char*)alloca(CACHE_SIZE_DEF + 1);
+    cache.cache = (puchar*)alloca(CACHE_SIZE_DEF + 1);
     cache.tail = cache.cache + CACHE_SIZE_DEF;
     cache.limit = cache.cache;
     cache.lino = 0;

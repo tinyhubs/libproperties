@@ -1,0 +1,21 @@
+on:
+  - push
+  - pull_request
+jobs:
+  build_test:
+    name: "Build and test libproperties using CMake"
+    strategy:
+      matrix:
+        os: ["macos-latest", "ubuntu-latest", "windows-latest"]
+        build_shared_libs: ["ON", "OFF"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v2
+      - name: "Configure/build/install libproperties"
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DBUILD_SHARED_LIBS=${{ matrix.build_shared_libs }}
+          cmake --build .
+          ctest -VV
