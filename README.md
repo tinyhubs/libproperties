@@ -4,18 +4,74 @@ libproperties is a library to parse the Java .properties files. It was writen in
 And fully compatible with the Java .properties file format.
 
 
-###	Build
+##	Build
 
-This library is very small. I am not ready provide the makefile for it. 
-You can add this file in your project and compile with you project together.
 
-You need just two file below to your project:
+
+### Raw file way
+
+If you do not want to use this project as a library, You can add these files in your project and compile with you project together.
 
 - properties.c
 - buf.c
 
+### Build shared library with cmake
 
-###	Usage
+```bash
+mkdir build
+cd build/
+cmake ../
+make
+```
+
+### Build static library with cmake
+
+```bash
+mkdir build
+cd build/
+cmake -D BUILD_SHARED_LIBS=off ../
+make
+```
+
+### Build and test
+
+After build, we just need type command below:
+
+```bash
+make test
+```
+
+### Clean
+
+```bash
+make clean
+```
+
+
+### Install
+
+If you do not need special the install directory, you need to setup the `CMAKE_INSTALL_PREFIX` options:
+
+```bash
+mkdir build
+cd build/
+cmake -DCMAKE_INSTALL_PREFIX=./output ../
+make
+make install
+```
+
+If you do not need special the install directory, the default installed directory is `/usr/local/lib/`:
+
+```bash
+mkdir build
+cd build/
+cmake ../
+make
+make install
+```
+
+
+##	Usage
 
 The kernel function of this library is `properties_parse`
 
