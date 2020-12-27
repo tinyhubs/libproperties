@@ -28,6 +28,9 @@ set_target_properties(properties PROPERTIES
     SOVERSION           ${PROJECT_VERSION_MAJOR}
     EXPORT_NAME         libproperties
     DEFINE_SYMBOL       LIBPROPERTIES_EXPORT
+    C_STANDARD          99
+    C_EXTENSIONS        OFF
+    C_STANDARD_REQUIRED ON
     C_VISIBILITY_PRESET hidden
 )
 target_include_directories(properties PUBLIC
